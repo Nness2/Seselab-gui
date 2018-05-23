@@ -7,6 +7,7 @@ main:
 	prn r21
 	sub r20 #10 #15
 	prn r20
+
 	mul r19 #3 #10
 	prn r19
 	prc #10
@@ -14,10 +15,11 @@ main:
 	prc #101
 	prc #108
 	prc #108
+
 	prc #111
 	prc #119
 	prc #111
 	prc #114
 	prc #108
 	prc #100
-	prc #10
+
