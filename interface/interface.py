@@ -45,7 +45,7 @@ class Interface:
 				self._lab2.config(text='-> '+self._lines[self._i+1])
 				self._lab3.config(text=' '+self._lines[self._i+2])
 				self._i += 1
-				i += 1
+			i += 1	
 
 
 program = Interface()
