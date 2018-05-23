@@ -41,7 +41,6 @@ class Memory:
 	#def clavier(event):
     	#	touche = event.keysym
     	#	print(touche)
-
 	#canvas = Canvas(fenetre, width=500, height=500)
 	#canvas.focus_set()
 	#canvas.bind("<Key>", clavier)
