@@ -20,15 +20,15 @@ class Interface:
 		self._fenetre = Tk()
 		self._lines = getLines(sys.argv[1])
 		self._lab1 = Label(self._fenetre, text='', bg='white', width=25, anchor='w')
-		self._lab1.pack()
+		self._lab1.grid(columnspan=4, sticky='w')
 		self._lab2 = Label(self._fenetre,text='-> '+self._lines[0], bg='white', width=25, anchor='w')
-		self._lab2.pack()
+		self._lab2.grid(columnspan=4, sticky='w')
 		self._lab3 = Label(self._fenetre, text=' '+self._lines[1], bg='white', width=25, anchor='w')
-		self._lab3.pack()
-		self._sb = Button(self._fenetre, text="Pas-à-pas", command=self.stepByStep).pack(padx=10, pady=10, side=LEFT)
-		self._ns = Button(self._fenetre, text="Trois par trois", command=self.nStep).pack(padx=10, pady=10, side=LEFT)
+		self._lab3.grid(columnspan=4, sticky='w')
+		self._sb = Button(self._fenetre, text="Pas-à-pas", command=self.stepByStep).grid(column=0, row=4, rowspan=1)
+		self._ns = Button(self._fenetre, text="Trois par trois", command=self.nStep).grid(column=1, row=4, rowspan=1)
 		# self._os = Button(self._fenetre, text="Sans interruption").pack(padx=10, pady=10, side=LEFT)
-		self._quit=Button(self._fenetre, text="Fermer", command=self._fenetre.quit).pack(padx=10, pady=10, side=BOTTOM)
+		self._quit=Button(self._fenetre, text="Fermer", command=self._fenetre.quit).grid(column = 1,row=5,sticky='e')
 	
 	def stepByStep(self):
 		if self._lines[self._i] != 'end':

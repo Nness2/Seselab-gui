@@ -42,7 +42,6 @@ class CPU:
     def cycle (self, ip):
         instr = self._code[ip][0]
         opcode = instr[0]
-
         # opcodes with no arguments
         if opcode == 'nop':
             pass
