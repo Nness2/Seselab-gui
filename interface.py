@@ -29,13 +29,21 @@ class Interface:
 		self._i = 0
 		self._root = Tk()
 		self._root.title('Seselab') 
-		self._root.geometry("450x240")
-		self._infos = self.getInfos(code)
+		self._root.geometry("680x240")
+		self._code = code
+		self._infos = self.getInfos(self._code)
 		# self._lines = getLines(sys.argv[1])
-		self._t = Text(self._root,height=6, width=35)
-		self._t.grid(columnspan=15, padx=10, pady=10, column = 1, row = 1)
+
+		self._t = Text(self._root,height=6, width=45)
+		self._t.grid(padx=10, pady=10, column = 2, row = 1)
 		self._t.insert(END,'\n\n\n'+str(self._infos[1])+'\n\n'+str(self._infos[2])+'\n')
 		self._t.config(state='disabled')
+
+		self._t2 = Text(self._root,height=6, width=45)
+		self._t2.grid(padx=10, pady=10, column = 1, row = 1)
+		self._t2.insert(END,'\n\n\n'+str(code[0][0])+'\n\n'+str(code[1][0])+'\n')
+		self._t2.config(state='disabled')
+
 		self._step = Button(self._root, text="Step by step", command=self.stepByStep).grid(column=1, row=4, sticky='ew')
 		self._quit = Button(self._root, text="Close", command=self._root.quit).grid(column=1, row=7, sticky='ew', pady = 4)
 		# self._rstr = Button(self._root, text="Restart", width=5, command=self.nStep).grid(column=1, row=6, sticky='ew')
@@ -44,7 +52,6 @@ class Interface:
 		# self._value.set('Step')
 		# self._entree = Entry(self._root, text=self._value, width=5)
 		# self._entree.grid(column=2, row=5, sticky='ew')
-	
 
 	def getInfos(self, program):
 		i = 0
@@ -61,6 +68,10 @@ class Interface:
 		self._t.delete('1.0', END)
 		self._t.insert(END, '\n'+str(self._infos[i+1])+'\n\n'+str(self._infos[i+2])+'\n\n'+str(self._infos[i+3])+'\n')
 		self._t.config(state='disabled')
+		self._t2.config(state='normal')
+		self._t2.delete('1.0', END)
+		self._t2.insert(END, '\n'+str(self._code[i][0])+'\n\n'+str(self._code[i+1][0])+'\n\n'+str(self._code[i+2][0])+'\n')
+		self._t2.config(state='disabled')
 
 	def stepByStep(self):
 		if self._infos[self._i] != 'end':
@@ -82,7 +93,6 @@ class Interface:
 
 
 program = Compiler().compile(sys.argv[1])
-print(program)
 main = Interface(program)
 mainloop()
 
