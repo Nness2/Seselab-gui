@@ -23,3 +23,4 @@ main:
 	prc #108
 	prc #100
 
+	beq #4 r23 #4
