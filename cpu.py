@@ -122,18 +122,18 @@ class CPU:
 
         return None
 
-    def run (self, i):
+    def run (self):
         try:
             max_ip = len(self._code)
             self._reg[self.__sp] = self._ram._size # init stack pointer
             self._reg[self.__ra] = max_ip # init return address
-            iP = i # init instruction pointer
-            if iP >= 0 and iP < max_ip:
-                ip = self.cycle(iP)
+            self._ip = 0 # init instruction pointer
+            while self._ip >= 0 and self._ip < max_ip:
+                ip = self.cycle(self._ip)
                 if ip is not None:
-                    iP = ip
+                    self._ip = ip
                 else:
-                    iP += 1
+                    self._ip += 1
                 self._probe.read(self._ram.get_activity())
                 self._probe.read(self._reg.get_activity())
                 self._probe.output_activity()
@@ -148,4 +148,4 @@ class CPU:
 
     def dbg (self, ip):
         return (' on line ' + str(self._code[ip][1][1]) +
-                ' of file ' + self._code[ip][1][0])
+' of file ' + self._code[ip][1][0])
