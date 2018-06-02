@@ -5,6 +5,8 @@ from compiler import Compiler
 from probe  import Probe
 from memory import Memory
 from cpu import CPU
+from exn    import *
+import sys
 import linecache
 import random
 import time
@@ -58,8 +60,14 @@ class Interface:
 
 	def __init__(self, code):
 		self._i = 0
+		self._ip = 0 # init instruction pointer
 		self.flag = 0
+		self._code = code
+		self._ram = Memory(1048576)
 		self._reg = Memory(32)
+		self.__ra = 32 - 1
+		self.__sp = 32 - 2
+		self._probe = Probe(sys.argv[2])
 		self._root = Tk()
 		self._current = 0
 		self._regWd = Tk()
@@ -92,7 +100,7 @@ class Interface:
 				self._regLst.append(l)
 				i += 1
 		quit = Button(self._regWd, text="Close", command=self.dispMask).grid(column=1, row=5, sticky='we', pady = 4)
-		fault = Button(self._regWd, text="Inject fault", command=self.injctFault).grid(column=2, row=5, sticky='we', pady = 4)
+		fault = Button(self._regWd, text="Inject fault", command=self.injctRand).grid(column=2, row=5, sticky='we', pady = 4)
 		zero = Button(self._regWd, text="Set to zero", command=self.SetToZero).grid(column=3 , row=5, sticky='we', pady = 4)
 
 	def dispMask (self):
@@ -115,21 +123,37 @@ class Interface:
 
 	def SetToZero (self):
 		self._regLst[self._current].config(text='r'+str(self._current)+': 0')
-		self._reg[self._current] = 0	
+		self._reg[self._current] = 0
+		self._code.insert(self._ip, self.insertFault(0))
+		self.runC()
 
-	def injctFault (self):
+	def injctRand (self):
 		r = random.randint(-1000,1000)
 		self._regLst[self._current].config(text='r'+str(self._current)+': '+str(r))
-		self._reg[self._current] = r	
+		self._reg[self._current] = r
+		self._code.insert(self._ip, self.insertFault(r))
+		self.runC()
+
+	def insertFault(self, imm):
+		return [['mov',('reg',self._current),('imm',imm)]]
 
 	def change(self):
 		self._lab1.config(text=self._infos[self._i])
 		self._lab2.config(text=self._infos[self._i+1])
 		self._lab3.config(text=self._infos[self._i+2]+'\n')
 		self._i += 1
+		self.runC()
+		for i in range (32):
+			self._regLst[i].config(text='r'+str(i)+': '+str(cpu._reg[i]))
 		if self._infos[self._i] != 'end':
 			if self.flag > 0: 
-				self._root.after(50,self.change)	
+				self._root.after(50,self.change)
+
+	def run(self):	
+		if self.flag == 0:
+			self.flag = 1
+			self.change()
+		self.runC()
 
 	def step(self):
 		if self._infos[self._i] != 'end':
@@ -137,17 +161,38 @@ class Interface:
 			self._lab2.config(text=self._infos[self._i+1])
 			self._lab3.config(text=self._infos[self._i+2]+'\n')
 			self._i += 1
-
-	def run(self):	
-		if self.flag == 0:
-			self.flag = 1
-			self.change()
-		# time.sleep(1/10)
+			self.runC()
+		for i in range (32):
+			self._regLst[i].config(text='r'+str(i)+': '+str(cpu._reg[i]))
 			
-
-
 	def breaK(self):
 		self.flag = 0
+
+	def runC (self):
+		init = 1
+		if init == 1:
+			max_ip = len(self._code)
+			self._reg[self.__sp] = self._ram._size # init stack pointer
+			self._reg[self.__ra] = max_ip # init return address
+			init = 0
+		try:
+			if self._ip >= 0 and self._ip < max_ip:
+				ip = cpu.cycle(self._ip)
+				if ip is not None:
+					self._ip = ip
+				else:
+					self._ip += 1
+				self._probe.read(self._ram.get_activity())
+				self._probe.read(self._reg.get_activity())
+				self._probe.output_activity()
+				sys.stdout.flush()
+				
+		except AddrError as e:
+			print('Invalid address ' + str(e.addr) + cpu.dbg(self._ip))
+		except ValError as e:
+			print('Invalid value ' + str(e.val) + cpu.dbg(self._ip))
+		except WriteError:
+			print('Invalid write ' + cpu.dbg(self._ip))
 
 
 program = Compiler().compile(sys.argv[1])
