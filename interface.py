@@ -57,12 +57,11 @@ def stackInfos(program):
 class Interface:
 
 	def __init__(self, code):
-		self.f = 0
 		self._i = 0
-		self._ip = 1
 		self.flag = 0
 		self._reg = Memory(32)
 		self._root = Tk()
+		self._current = 0
 		self._regWd = Tk()
 		self.openRegList()
 		self._root.title('Seselab')
@@ -85,7 +84,6 @@ class Interface:
  	
 	def openRegList (self):
 		self._regLst = []
-		self._current = 0
 		i = 0
 		for j in range(4):
 			for k in range(8):
@@ -98,12 +96,17 @@ class Interface:
 		zero = Button(self._regWd, text="Set to zero", command=self.SetToZero).grid(column=3 , row=5, sticky='we', pady = 4)
 
 	def dispMask (self):
-		if self._dm == 0:
-			self._regWd.deiconify()
-			self._dm = 1
-		else:
-			self._regWd.withdraw()
-			self._dm = 0
+		try:
+			if self._dm == 0:
+				self._regWd.deiconify()
+				self._dm = 1
+			else:
+				self._regWd.withdraw()
+				self._dm = 0
+		except:
+			self._regWd = Tk()
+			self.openRegList()
+			self._regLst[self._current].config(bg='yellow')
 
 	def select (self, x):
 		self._regLst[self._current].config(bg='white')
