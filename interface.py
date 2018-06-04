@@ -5,7 +5,8 @@ from compiler import Compiler
 from probe  import Probe
 from memory import Memory
 from cpu import CPU
-from exn    import *
+import tkinter
+import tkinter.font as tkFont
 import sys
 import linecache
 import random
@@ -43,7 +44,7 @@ def getInfos (program, i):
 	code = linecache.getline(file, line)
 	code = code.replace('\t','')
 	code = code.replace('\n','')
-	takeAll = splitInfos(25, getProgram(i,program))+splitInfos(20, code)+file+'  L.'+str(line)
+	takeAll = splitInfos(20, getProgram(i,program))+splitInfos(20, code)+file+'  L.'+str(line)
 	return takeAll
 
 def stackInfos(program):
@@ -70,51 +71,38 @@ class Interface:
 		self._probe = Probe(sys.argv[2])
 		self._root = Tk()
 		self._current = 0
-		self._regWd = Tk()
 		self.openRegList()
 		self._root.title('Seselab')
-		self._regWd.title('Register')
 		self._dm = 1
-		self.dispMask()
 		# self._root.geometry("490x250")
 		self._infos = stackInfos(code)
-		self._lab1 = Label(self._root, text='', bg='white', width=60, anchor='w')
-		self._lab2 = Label(self._root, text=self._infos[0], bg='yellow', width=60, anchor='w')
-		self._lab3 = Label(self._root, text=self._infos[1]+'\n', bg='white', width=60, anchor='w')
-		self._lab1.grid(column = 1, row = 1, columnspan=8)
-		self._lab2.grid(column = 1, row = 2, columnspan=8)
-		self._lab3.grid(column = 1, row = 3, columnspan=8)
-		self._step = Button(self._root, text="Step", command=self.step).grid(column=1, row=4, sticky='we')
-		self._run = Button(self._root, text="Run", command=self.run).grid(column=2, row=4, sticky='we')
-		self._breaK = Button(self._root, text="Break", command=self.breaK).grid(column=3, row=4, sticky='we')
-		self._regView = Button(self._root, text="Register list", command=self.dispMask).grid(column=4, row=4, sticky='we')
-		self._quit = Button(self._root, text="Close", command=self._root.quit).grid(column=1, row=5, sticky='we', pady = 4)
+		default_font = tkFont.nametofont("TkFixedFont")
+		default_font.configure(size=15)
+		self._lab1 = Label(self._root, text='', bg='white', width=60, anchor='w',font="TkFixedFont")
+		self._lab2 = Label(self._root, text=self._infos[0], bg='yellow', width=60, anchor='w',font="TkFixedFont")
+		self._lab3 = Label(self._root, text=self._infos[1], bg='white', width=60, anchor='w',font="TkFixedFont")
+		self._lab1.grid(column = 1, row = 1, columnspan=8, sticky='w')
+		self._lab2.grid(column = 1, row = 2, columnspan=8, sticky='w')
+		self._lab3.grid(column = 1, row = 3, columnspan=8, sticky='w')
+		self._space = Label(self._root, text='', bg='white', width=60, anchor='w', font="TkFixedFont").grid(column = 1, row = 4, columnspan=8, sticky='w', )
+		self._step = Button(self._root, text="Step", command=self.step, width = 10).grid(column=9, row=1, sticky='nesw')
+		self._run = Button(self._root, text="Run", command=self.run, width = 10).grid(column=9, row=2, sticky='nesw')
+		self._breaK = Button(self._root, text="Break", command=self.breaK, width = 10).grid(column=9, row=3, sticky='nesw')
+		self._reset = Button(self._root, text="Reset", command=self.breaK, width = 10).grid(column=9, row=4, sticky='nesw')
+		# self._quit = Button(self._root, text="Close", command=self._root.quit).grid(column=1, row=9, sticky='we', pady = 4)
  	
 	def openRegList (self):
 		self._regLst = []
 		i = 0
 		for j in range(4):
 			for k in range(8):
-				l = Button(self._regWd, text='r'+str(i)+': '+str(self._reg[i]), bg='white', command=lambda x=i : self.select(x))
-				l.grid(column = k+1, row = j+1, sticky='we')
+				l = Button(self._root, text='r'+str(i)+': '+str(self._reg[i]), bg='white', width = 5,command=lambda x=i : self.select(x))
+				l.grid(column = k+1, row = j+5, sticky='we')
 				self._regLst.append(l)
 				i += 1
-		quit = Button(self._regWd, text="Close", command=self.dispMask).grid(column=1, row=5, sticky='we', pady = 4)
-		fault = Button(self._regWd, text="Inject fault", command=self.injctRand).grid(column=2, row=5, sticky='we', pady = 4)
-		zero = Button(self._regWd, text="Set to zero", command=self.SetToZero).grid(column=3 , row=5, sticky='we', pady = 4)
-
-	def dispMask (self):
-		try:
-			if self._dm == 0:
-				self._regWd.deiconify()
-				self._dm = 1
-			else:
-				self._regWd.withdraw()
-				self._dm = 0
-		except:
-			self._regWd = Tk()
-			self.openRegList()
-			self._regLst[self._current].config(bg='yellow')
+		self._regLst[0].config(bg='yellow')
+		fault = Button(self._root, text="Inject fault", command=self.injctRand, width = 10).grid(column=1, row=9, sticky='we', pady = 4, columnspan=2)
+		zero = Button(self._root, text="Set to zero", command=self.SetToZero, width = 10).grid(column=3 , row=9, sticky='we', pady = 4, columnspan=2)
 
 	def select (self, x):
 		self._regLst[self._current].config(bg='white')
@@ -124,49 +112,49 @@ class Interface:
 	def SetToZero (self):
 		self._regLst[self._current].config(text='r'+str(self._current)+': 0')
 		self._reg[self._current] = 0
-		self._code.insert(self._ip, self.insertFault(0))
-		self.runC()
+		cpu._reg[self._current] = 0
+
 
 	def injctRand (self):
-		r = random.randint(-1000,1000)
+		r = random.randint(0,255)
 		self._regLst[self._current].config(text='r'+str(self._current)+': '+str(r))
 		self._reg[self._current] = r
-		self._code.insert(self._ip, self.insertFault(r))
-		self.runC()
+		cpu._reg[self._current] = r
 
-	def insertFault(self, imm):
-		return [['mov',('reg',self._current),('imm',imm)]]
-
-	def change(self):
+	def change (self):
 		self._lab1.config(text=self._infos[self._i])
 		self._lab2.config(text=self._infos[self._i+1])
-		self._lab3.config(text=self._infos[self._i+2]+'\n')
+		self._lab3.config(text=self._infos[self._i+2])
 		self._i += 1
 		self.runC()
+
+	def tempo(self):
+		self.change()
 		for i in range (32):
 			self._regLst[i].config(text='r'+str(i)+': '+str(cpu._reg[i]))
 		if self._infos[self._i] != 'end':
 			if self.flag > 0: 
-				self._root.after(50,self.change)
+				self._root.after(50,self.tempo)
 
 	def run(self):	
 		if self.flag == 0:
 			self.flag = 1
-			self.change()
+			self.tempo()
 		self.runC()
 
 	def step(self):
 		if self._infos[self._i] != 'end':
 			self._lab1.config(text=self._infos[self._i])
 			self._lab2.config(text=self._infos[self._i+1])
-			self._lab3.config(text=self._infos[self._i+2]+'\n')
+			self._lab3.config(text=self._infos[self._i+2])
 			self._i += 1
 			self.runC()
 		for i in range (32):
 			self._regLst[i].config(text='r'+str(i)+': '+str(cpu._reg[i]))
 			
 	def breaK(self):
-		self.flag = 0
+		if self._infos[self._i] != 'end':
+			self.flag = 0
 
 	def runC (self):
 		init = 1
