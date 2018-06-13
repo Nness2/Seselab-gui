@@ -5,234 +5,270 @@ from compiler import Compiler
 from probe  import Probe
 from memory import Memory
 from cpu import CPU
+from instr import Instr
 from tkinter import filedialog
-import tkinter
+import tkinter as tk
+import os
 import tkinter.font as tkFont
 import sys
-import linecache
 import random
-import time
-
-def splitInfos(space, contents): # make space betwin differents elements
-	text = contents
-	size = len(text)
-	while size < space:
-		text = text + ' '
-		size += 1
-	return text
-
-def getProgram (k, program): 
-	t = ''
-	for i in program[k][0]:
-		for j in i:
-			if j == 'reg':
-				t = t+' r'
-			if j == 'imm':
-				t = t+' #'
-			if j == 'mem':
-				t = t+' @'
-			if j != 'reg' and j != 'imm' and j != 'mem':
-				t = t+str(j)
-	return t
-
-def getInfos (program, i):
-	takeAll = ''
-	file = program[i][1][0]
-	line =program[i][1][1]
-	if line < 0:
-		line = program[i][0][1][1]
-		file = program[i][1][2]+'.asm'
-	code = linecache.getline(file, line)
-	code = code.replace('\t','')
-	code = code.replace('\n','')
-	takeAll = splitInfos(20, getProgram(i,program))+splitInfos(20, code)+file+'  L.'+str(line)
-	return takeAll
-
-def stackInfos(program):
-	i = 0
-	instrs = []
-	for instr in program:
-		instrs.append(getInfos(program,i))
-		i += 1
-	instrs.append("end")
-	instrs.append("")
-	return instrs
 
 class Interface:
 
-	def __init__(self):
-		self._i = 0
-		self._ip = 0 # init instruction pointer
-		self.flag = 0
-		# self._root.geometry("490x250")
-		self._root = Tk()
-		self._current = 0
-		self._root.title('Seselab')
-		self._dm = 1
-		self.openRegList()
-		font = tkFont.nametofont("TkFixedFont")
-		font.configure(size=17)
+    def __init__(self):
+        self._i = 0
+        self.flag = 0
+        self._root = Tk()
+        self._root.resizable(False, False)
+        self._current = 33
+        self._root.title('Seselab')
+        self._dm = 1
+        self.open_reglist()
+        self.font = tkFont.nametofont("TkFixedFont")
+        self.font.configure(size=14)
+        self.which_file()
+        self._inject_fault = Label(self._root, text = 'Inject fault:', bg = None, width = 10, font = ('helvetic', 11, 'bold'))
+        self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
+        self._step = self.creat_button(self._root, 'Step', self.event_step, 'disabled', 8, 1)
+        self._run = self.creat_button(self._root, 'Run', self.event_run, 'disabled', 8, 2)
+        self._run_slow = self.creat_button(self._root, 'Run slowly', self.event_run_slow, 'disabled', 8, 3)
+        self._pause = self.creat_button(self._root, 'Pause', self.event_pause, 'disabled', 8, 4)
+        self._skip = self.creat_button(self._root, 'Skip', self.event_skip, 'disabled', 8, 5)
+        self._to_rand = self.creat_button(self._root, 'Random', self.event_set_rand, 'disabled', 2, 10)
+        self._to_zero = self.creat_button(self._root, 'Zero', self.event_set_zero, 'disabled', 3, 10)
+        self._reset = self.creat_button(self._root, 'Reset', self.load, 'disabled', 5, 0)
+        self._quit= self.creat_button(self._root, 'Close', self._root.quit, 'normal', 8, 12)
+        self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0)
+        self._load = self.creat_button(self._root, 'Load', self.load, 'normal', 4, 0)
 
-		#LABEL
-		self._space = Label(self._root, text='', bg=None).grid(column = 1, row = 5)
-		self._injectFault = Label(self._root, text='Inject fault:', bg=None, width=10, font=('helvetic', 11, 'bold'))
-		self._lab1 = Label(self._root, text='', bg='white', width=61, anchor='w',font="TkFixedFont")
-		self._lab2 = Label(self._root, text='', bg='white', width=61, anchor='w',font="TkFixedFont")
-		self._lab3 = Label(self._root, text='', bg='white', width=61, anchor='w',font="TkFixedFont")
-		self._lab1.grid(column = 1, row = 2, columnspan=7, sticky='w', padx = 1)
-		self._lab2.grid(column = 1, row = 3, columnspan=7, sticky='w', padx = 1)
-		self._lab3.grid(column = 1, row = 4, columnspan=7, sticky='w', padx = 1)
-		self._injectFault.grid(column = 1, row = 11, columnspan=8, sticky='w', padx = 8)
-		#BUTTON
-		self._step = Button(self._root, text="Step", command=self.step, width = 6, font=('helvetic', 10), state='disabled')
-		self._step.grid(column=8, row=2, sticky='nesw', padx=2)
-		self._breaK = Button(self._root, text="Break", command=self.breaK, width = 6, font=('helvetic', 10), state='disabled')
-		self._breaK.grid(column=8, row=4, sticky='nesw', padx=2)
-		self._run = Button(self._root, text="Run", command=self.run, width = 6, font=('helvetic', 10), state='disabled')
-		self._run.grid(column=8, row=3, sticky='nesw', padx=2)
-		self._toRand = Button(self._root, text="Random", command=self.setRand, width = 6, font=('helvetic', 11), state='disabled')
-		self._toRand.grid(column=2, row=11, sticky='we', pady = 4)
-		self._toZero = Button(self._root, text="Zero", command=self.setToZero, width = 6, font=('helvetic', 11), state='disabled')
-		self._toZero.grid(column=3 , row=11, sticky='we', pady = 4)
-		self._reset = Button(self._root, text="Reset", command=self.load, width = 6, font=('helvetic', 11), state='disabled')
-		self._reset.grid(column=5, row=0, sticky='nesw', pady=2)
-		self._quit = Button(self._root, text="Close", command=self._root.quit, width = 6, font=('helvetic', 11)).grid(column=7, row=11, sticky='we', columnspan=2)
-		self._open = Button(self._root, text="Open file", command=self.openFile, width = 6, font=('helvetic', 11)).grid(column=3, row=0, sticky='nesw', pady=2)
-		self._load = Button(self._root, text="Load", command=self.load, width = 6, font=('helvetic', 11)).grid(column=4, row=0, sticky='nesw', pady=2)
-		self.whichFile()
-		# value = StringVar() 
-		# value.set('50 ms')
-		# self._entree = Entry(self._root, text=value, width=5)
-		# self._entree.grid(column=9, row=3, sticky='w', padx = 2)
-		# self._reset = Button(self._root, text="Reset", command=self.breaK, width = 10).grid(column=8, row=4, sticky='nesw', padx=0, pady=0)
+        self._canvas = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
+        self._frame = Frame(self._canvas, background = "#ffffff")
+        self._vsb = Scrollbar(self._root, orient = "vertical", command = self._canvas.yview)
+        self._canvas.configure(yscrollcommand = self._vsb.set)
+        self._vsb.grid(rowspan = 5, column = 7, row = 1, sticky = 'nse')
+        self._canvas.grid(rowspan = 5, columnspan = 7,column = 1, row = 1, sticky = 'nesw')
+        self._canvas.create_window((4,4), window=self._frame, anchor="ne")
+        self._frame.bind("<Configure>", lambda event, canvas = self._canvas: self.on_frame_configure(self._canvas))
+        self._op = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 85, height = 5, font = self.font, relief = SUNKEN)
+        self._op.grid(sticky = 'w',row = 11, column = 1, columnspan = 8, padx = 5,pady = 5)
 
-	def openFile (self):
-		filename =  filedialog.askopenfilename(initialdir = "/home",title = "Select file",filetypes = (("asm files","*.asm"),("all files","*.*")))
-		self._file.delete(0,17)
-		self._file.insert(0,filename)
+    def populate(self): 
+        self._istr_lst = []
+        for row in range(len(self._infos)-1):
+            t = self._infos[row]
+            l = Label(self._frame, 
+                      text = t, 
+                      anchor = 'w', 
+                      bg = 'white',
+                      font = self.font)
+            l.grid(row = row, 
+                   column = 1)
+            self._istr_lst.append(l)
 
-	def whichFile (self):
-		value = StringVar() 
-		try:
-			value.set(sys.argv[1])
-			self._file = Entry(self._root, text=value, width=25, font=('helvetic', 12))
-			self._file.grid(column=1, row=0, sticky='w', padx = 7, pady = 5, columnspan=2)
-			self.load()
-		except:
-			value.set('Choose a file ...')
-			self._file = Entry(self._root, text=value, width=25, font=('helvetic', 12))
-			self._file.grid(column=1, row=0, sticky='w', padx = 7, pady = 5, columnspan=2)
+    def on_frame_configure (self, canvas):
+        self._canvas.configure(scrollregion = self._canvas.bbox("all"))
 
-	def load (self):
-		self._code = Compiler().compile(self._file.get())
-		self.cpu = CPU(1048576, 32, self._code, '/dev/null')
-		self._ram = Memory(1048576)
-		self._reg = Memory(32)
-		self.__ra = 32 - 1
-		self.__sp = 32 - 2
-		self._ip = 0
-		self._i = 0
-		self._probe = Probe('/dev/null')
-		self._infos = stackInfos(self._code)
-		self._step.config(state='normal')
-		self._breaK.config(state='normal')
-		self._run.config(state='normal')
-		self._toRand.config(state='normal')
-		self._toZero.config(state='normal')
-		self._reset.config(state='normal')
-		self._lab1.config(text='')
-		self._lab2.config(text=self._infos[0],bg='yellow')
-		self._lab3.config(text=self._infos[1])
-		self.flag = 0
-		for i in range (32):
-			self._regLst[i].config(text='r'+str(i)+': '+'0')
+    def creat_button (self, root, text, command, state, c, r):
+        button = Button(self._root, 
+            text = text, 
+            command = command, 
+            width = 6, font = ('helvetic', 11), 
+            state = state)
+        button.grid(column = c, 
+            row = r, 
+            sticky = 'we', 
+            pady = 0, 
+            padx = 2)
+        return button
 
-	def select (self, x):
-		self._regLst[self._current].config(bg='white')
-		self._regLst[x].config(bg='yellow')
-		self._current = x
+    def pick_file (self):
+        filename = filedialog.askopenfilename(initialdir = os.getcwd(), 
+            title = "Select file", 
+            filetypes = (("asm files", "*.asm"), ("all files", "*.*")))
+        self._file.delete(0, END)
+        self._file.insert(0, filename)
 
-	def openRegList (self):
-		self._regLst = []
-		i = 0
-		for j in range(4):
-			for k in range(8):
-				l = Button(self._root, text='r'+str(i)+': '+str(0), bg='white', width = 9,command=lambda x=i : self.select(x), font=('helvetic', 11))
-				l.grid(column = k+1, row = j+7, sticky='we')
-				self._regLst.append(l)
-				i += 1
-		self._regLst[0].config(bg='yellow')
+    def which_file (self):
+        value = StringVar() 
+        try:
+            value.set(sys.argv[1])
+            self._file = Entry(self._root, text = value, width = 22, font = ('helvetic', 12))
+            self._file.grid(column = 1, row = 0, sticky = 'w', padx = 7, pady = 5, columnspan = 3)
+        except:
+            value.set('Choose a file ...')
+            self._file = Entry(self._root, text=value, width = 22, font = ('helvetic', 12))
+            self._file.grid(column = 1, row = 0, sticky = 'w', padx = 7, pady = 5, columnspan = 3)
 
-	def setToZero (self):
-		self._regLst[self._current].config(text='r'+str(self._current)+': 0')
-		self.cpu._reg[self._current] = 0
+    def event_reset (self):
+        self._i = 0
+        self.cpu = CPU(1048576, 32, self._code, '/dev/null')
+        self.cpu._ip += 1
+        self._infos = Instr().stack_infos(self._code)
+        self.populate()
+        self.update_display()
+        self.update_reglist()
+        self.flag = 0
 
+    def load (self):
+        self._i = 0
+        self._sortie = ''
+        self._code = Compiler().compile(self._file.get())
+        self.cpu = CPU(1048576, 32, self._code, '/dev/null')
+        self.cpu._ip += 1
+        self._infos = Instr().stack_infos(self._code)
+        self.populate()
+        self.update_display()
+        self.button_state('normal')
+        self._pause.config(state = 'normal')
+        self._reset.config(state = 'normal')
+        self.update_reglist()
+        self.flag = 0
 
-	def setRand (self):
-		r = random.randint(0,255)
-		self._regLst[self._current].config(text='r'+str(self._current)+': '+str(r))
-		self.cpu._reg[self._current] = r
+    def select (self, x):
+        if self._current == 33:
+            self._reg_lst[x].config(bg = 'yellow')
+            self._current = x
+            self._to_rand.config(state = 'normal')
+            self._to_zero.config(state = 'normal')
+        elif self._current == x:
+            self._reg_lst[self._current].config(bg = 'white')
+            self._current = 33
+            self._to_rand.config(state = 'disabled')
+            self._to_zero.config(state = 'disabled')
+        else:
+            self._reg_lst[self._current].config(bg = 'white')
+            self._reg_lst[x].config(bg = 'yellow')
+            self._current = x
+            self._to_rand.config(state = 'normal')
+            self._to_zero.config(state = 'normal')
 
-	def change (self):
-		for i in range (32):
-			self._regLst[i].config(text='r'+str(i)+': '+str(self.cpu._reg[i]))
-		self._lab1.config(text=self._infos[self._i])
-		self._lab2.config(text=self._infos[self._i+1])
-		self._lab3.config(text=self._infos[self._i+2])
-		self._i += 1
-		self.runC()
+    def open_reglist (self):
+        self._reg_lst = []
+        i = 0
+        for j in range(4):
+            for k in range(8):
+                l = Button(self._root, 
+                    text = 'r'+str(i)+': 0', 
+                    bg = 'white', 
+                    width = 9, 
+                    command = lambda x = i : 
+                    self.select(x), 
+                    font = ('helvetic', 11))
+                l.grid(column = k+1, 
+                    row = j+6, 
+                    sticky='we')
+                self._reg_lst.append(l)
+                i += 1
 
-	def step (self):
-		if self._infos[self._i] != 'end':
-			self.change()
+    def update_reglist (self):
+        for i in range (32):
+            self._reg_lst[i].config(text = 'r'+str(i)+': '+str(self.cpu._reg[i]))
+
+    def update_display (self):
+        for i in range (32):
+            self._reg_lst[i].config(text='r'+str(i)+': '+str(self.cpu._reg[i]))
+            self._canvas.yview_scroll(-2*i,'units')
+        if self._i < 3:
+            self._istr_lst[self._i].config(bg = 'white')
+            self._istr_lst[self._i+1].config(bg = 'yellow')
+        elif self._i >= len(self._infos)-4:
+            self._istr_lst[self._i].config(bg = 'white')
+            self._istr_lst[self._i+1].config(bg = 'yellow')
+        else:
+            self._istr_lst[self._i-3].destroy()
+            self._istr_lst[self._i].config(bg = 'white')
+            self._istr_lst[self._i+1].config(bg = 'yellow')
+        self._i += 1
+
+    def event_set_zero (self):
+        if self._current < 33:
+            self._reg_lst[self._current].config(text = 'r'+str(self._current)+': 0')
+            self.cpu._reg[self._current] = 0
+
+    def event_set_rand (self):
+        if self._current < 33:
+            r = random.randint(0,255)
+        self._reg_lst[self._current].config(text='r'+str(self._current)+': '+str(r))
+        self.cpu._reg[self._current] = r
+
+    def event_step (self):
+        if self.cpu.cycle():
+            self.output()
+            self.update_display()
+            pass
+        else:
+            self.button_state('disabled')
+            self._pause.config(state = 'disabled')
  
-	def tempo (self):
-		if self.flag == 1: 
-			if self._infos[self._i] != 'end':
-				self.change()
-				self._root.after(50,self.tempo)
+    def event_tempo (self):
+        if self.flag == 1:
+            if self.cpu.cycle():
+                self.output()
+                self.update_display()
+                self._root.after(500,self.event_tempo)
+                pass
 
-	def run (self):
-		if self.flag == 0:
-			self.flag = 1
-			self.tempo()
-			self._toRand.config(state='disabled')
-			self._toZero.config(state='disabled')
-			self.runC()
-			
-	def breaK (self):
-		self.flag = 0
-		self._toRand.config(state='normal')
-		self._toZero.config(state='normal')
+    def event_run (self):
+        self._speed = 0
+        while self.cpu.cycle():
+            self.output()
+            self.update_display()
+            pass
+        else:
+            self.button_state('disabled')
+            self._pause.config(state = 'disabled')
+    
+    def event_run_slow (self):
+        if self.flag == 0:
+            self.flag = 1
+            self.button_state('disabled')
+            self._reset.config(state = 'disabled')
+            self._load.config(state = 'disabled')
+            self.event_tempo()
+        else:
+            self.button_state('disabled')
+            self._pause.config(state = 'disabled')
 
-	def runC (self):
-		init = 1
-		if init == 1:
-			max_ip = len(self._code)
-			self._reg[self.__sp] = self._ram._size # init stack pointer
-			self._reg[self.__ra] = max_ip # init return address
-			init = 0
-		try:
-			if self._ip >= 0 and self._ip < max_ip:
-				ip = self.cpu.cycle(self._ip)
-				if ip is not None:
-					self._ip = ip
-				else:
-					self._ip += 1
-				self._probe.read(self._ram.get_activity())
-				self._probe.read(self._reg.get_activity())
-				self._probe.output_activity()
-				sys.stdout.flush()
-				
-		except AddrError as e:
-			print('Invalid address ' + str(e.addr) + self.cpu.dbg(self._ip))
-		except ValError as e:
-			print('Invalid value ' + str(e.val) + self.cpu.dbg(self._ip))
-		except WriteError:
-			print('Invalid write ' + self.cpu.dbg(self._ip))
+    def event_pause (self):
+        self.flag = 0
+        self.button_state('normal')
+        self._reset.config(state = 'normal')
+        self._load.config(state = 'normal')
 
+    def event_skip (self):
+        try:
+            self.cpu._ip += 1 
+            self.update_display() 
+        except:
+            self.button_state('disabled')
+            self._pause.config(state = 'disabled')
 
+    def button_state (self, state):
+        self._to_rand.config(state = state)
+        self._to_zero.config(state = state)
+        self._step.config(state = state)
+        self._run.config(state = state)
+        self._run_slow.config(state = state)
+        self._skip.config(state = state)
+
+    def output (self):
+        instr = self._code[self.cpu._ip-1][0]
+        opcode = instr[0]
+        dst = instr[1]
+        if opcode == 'prn':
+            self._sortie = self._sortie+str(self.cpu.value(dst))
+            self._op.config(text = self._sortie)
+        elif opcode == 'prx':
+            self._sortie = self._sortie+format(self.cpu.value(dst), '02x')
+            self._op.config(text = self._sortie)
+        elif opcode == 'prX':
+            self._sortie = self._sortie+format(self.cpu.value(dst), '04x')
+            self._op.config(text = self._sortie)
+        elif opcode == 'prc':
+            self._sortie = self._sortie+chr(self.cpu.value(dst))
+            self._op.config(text = self._sortie)
+        else:
+            pass
 
 main = Interface()
 mainloop()
-

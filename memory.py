@@ -37,11 +37,3 @@ class Memory:
         activity = (self._hw // 2) + self._hd + hw(self._addr)
         self._hd = 0
         return activity
-
-	#def clavier(event):
-    	#	touche = event.keysym
-    	#	print(touche)
-	#canvas = Canvas(fenetre, width=500, height=500)
-	#canvas.focus_set()
-	#canvas.bind("<Key>", clavier)
-	#canvas.pack()

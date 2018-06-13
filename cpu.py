@@ -7,10 +7,18 @@ class CPU:
 
     def __init__ (self, ram_size, reg_count, code, consolog):
         self._ram = Memory(ram_size)
+
         self._reg = Memory(reg_count)
         self.__ra = reg_count - 1
         self.__sp = reg_count - 2
+
         self._code = code
+
+        self._ip = 0 # init instruction pointer
+        self._max_ip = len(self._code)
+        self._reg[self.__sp] = self._ram._size # init stack pointer
+        self._reg[self.__ra] = self._max_ip # init return address
+
         self._probe = Probe(consolog)
 
     def value (self, val):
@@ -39,7 +47,7 @@ class CPU:
                 a += self.value(addr[2])
             self._ram[a] = val
 
-    def cycle (self, ip):
+    def execute_instruction (self, ip):
         instr = self._code[ip][0]
         opcode = instr[0]
         # opcodes with no arguments
@@ -122,30 +130,33 @@ class CPU:
 
         return None
 
-    def run (self):
+    def cycle (self):
         try:
-            max_ip = len(self._code)
-            self._reg[self.__sp] = self._ram._size # init stack pointer
-            self._reg[self.__ra] = max_ip # init return address
-            self._ip = 0 # init instruction pointer
-            while self._ip >= 0 and self._ip < max_ip:
-                ip = self.cycle(self._ip)
-                if ip is not None:
-                    self._ip = ip
-                else:
-                    self._ip += 1
-                self._probe.read(self._ram.get_activity())
-                self._probe.read(self._reg.get_activity())
-                self._probe.output_activity()
-                sys.stdout.flush()
+            ip = self.execute_instruction(self._ip)
+            if ip is not None:
+                self._ip = ip
+            else:
+                self._ip += 1
+            self._probe.read(self._ram.get_activity())
+            self._probe.read(self._reg.get_activity())
+            self._probe.output_activity()
+            sys.stdout.flush()
+
+            if self._ip < 0 or self._ip >= self._max_ip:
+                return False
+            return True
 
         except AddrError as e:
-            print('Invalid address ' + str(e.addr) + self.dbg(self._ip))
+            print('Invalid address ' + str(e.addr) + self.dbg(self._ip), file=sys.stderr)
         except ValError as e:
-            print('Invalid value ' + str(e.val) + self.dbg(self._ip))
+            print('Invalid value ' + str(e.val) + self.dbg(self._ip), file=sys.stderr)
         except WriteError:
-            print('Invalid write ' + self.dbg(self._ip))
+            print('Invalid write ' + self.dbg(self._ip), file=sys.stderr)
+
+    def run (self):
+        while self.cycle():
+            pass
 
     def dbg (self, ip):
         return (' on line ' + str(self._code[ip][1][1]) +
-' of file ' + self._code[ip][1][0])
+                ' of file ' + self._code[ip][1][0])
