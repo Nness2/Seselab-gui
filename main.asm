@@ -1,8 +1,8 @@
 main:
-	prn r23
-	mov r23 #3
-	mov r22 #5
-	prc #10
+	prn r23 ; oui
+	;mov r23 #3
+	;mov r22 #5
+	;prc #10
 	prn r23
 	add r22 #3 #2
 	prn r22

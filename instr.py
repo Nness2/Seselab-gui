@@ -22,6 +22,7 @@ class Instr:
         code = linecache.getline(file, line)
         code = code.replace('\t','')
         code = code.replace('\n','')
+        code = code.split(';', 1)[0].strip()
         takeAll = self.split_infos(30, self.get_program(i,program))+self.split_infos(30, code)+file+':'+str(line)
         return takeAll
 
