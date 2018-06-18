@@ -15,14 +15,14 @@ class Instr:
     def get_infos (self, program, i):
         takeAll = ''
         file = program[i][1][0]
-        line =program[i][1][1]
+        line = program[i][1][1]
         if line < 0:
             line = program[i][0][1][1]
             file = program[i][1][2]+'.asm'
         code = linecache.getline(file, line)
         code = code.replace('\t','')
         code = code.replace('\n','')
-        takeAll = self.split_infos(25, self.get_program(i,program))+self.split_infos(20, code)+file+'       L.'+str(line)
+        takeAll = self.split_infos(30, self.get_program(i,program))+self.split_infos(30, code)+file+':'+str(line)
         return takeAll
 
     def stack_infos(self, program):
