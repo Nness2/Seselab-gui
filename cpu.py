@@ -147,16 +147,17 @@ class CPU:
             return True
 
         except AddrError as e:
-            print('Invalid address ' + str(e.addr) + self.dbg(self._ip), file=sys.stderr)
-        except ValError as e:
-            print('Invalid value ' + str(e.val) + self.dbg(self._ip), file=sys.stderr)
+            print('Invalid address ' + str(e.addr) +
+                  ' on line ' + str(self._code[self._ip][1][1]) +
+                  ' of file ' + self._code[self._ip][1][0],
+                  file=sys.stderr)
+
         except WriteError:
-            print('Invalid write ' + self.dbg(self._ip), file=sys.stderr)
+            print('Invalid write ' +
+                  ' on line ' + str(self._code[self._ip][1][1]) +
+                  ' of file ' + self._code[self._ip][1][0],
+                  file=sys.stderr)
 
     def run (self):
         while self.cycle():
             pass
-
-    def dbg (self, ip):
-        return (' on line ' + str(self._code[ip][1][1]) +
-                ' of file ' + self._code[ip][1][0])

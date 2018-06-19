@@ -36,6 +36,8 @@ class Instr:
         return instrs
 
     def get_program (self, k, program): 
+        file = program[k][1][0]
+        line = program[k][1][1]
         t = ''
         for i in program[k][0]:
             for j in i:
@@ -47,4 +49,10 @@ class Instr:
                     t = t+' @'
                 if j != 'reg' and j != 'imm' and j != 'mem':
                     t = t+str(j)
+                if j == 'ref':
+                    t = linecache.getline(file, line)
+                    t = t.replace('\t','')
+                    t = t.replace('\n','') 
+                    t = t.split(';', 1)[0].strip()
+                    return t 
         return t

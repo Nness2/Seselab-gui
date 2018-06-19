@@ -5,30 +5,27 @@ from exn import *
 class Compiler:
 
     def __init__ (self):
-        self._linum = []
+        self._ln = []
         self._files = []
         self._count = 0
         self._labels = {}
         self._code = []
 
-    def err (self, msg):
-        raise ParseError(msg, self._files[-1], self._linum[-1])
-
     def arit (self, i, a):
         if len(i) != a + 1:
-            self.err('arity')
+            raise ParseError('arity')
 
     def addr (self, a, noref = False):
         if a[0] == 'r':
             if a[1:].isdigit():
                 return ('reg', int(a[1:]))
             else:
-                self.err('register')
+                raise ParseError('register')
         if a[0] == '@':
             if a[1:].isdigit():
                 return ('mem', int(a[1:]))
             else:
-                self.err('memory')
+                raise ParseError('memory')
         if a[0] == '!' and not noref:
             if ',' in a:
                 r = a[1:].split(',', 1)
@@ -36,15 +33,15 @@ class Compiler:
             else:
                 return ('ref', self.val(a[1:], True))
         if noref:
-            self.err('reference')
-        self.err('address')
+            raise ParseError('reference')
+        raise ParseError('address')
 
     def val (self, v, noref = False):
         if v[0] == '#':
             try:
                 return ('imm', int(v[1:]))
             except:
-                self.err('immediate')
+                raise ParseError('immediate')
         else:
             return self.addr(v, noref)
 
@@ -61,7 +58,11 @@ class Compiler:
 
         if ':' in line:
             line = line.split(':', 1)
-            self._labels[line[0].strip()] = self._count
+            lbl = line[0].strip()
+            if lbl in self._labels:
+                raise DuplicateLabel(lbl)
+            else:
+                self._labels[lbl] = self._count, self._files[-1], self._ln[-1]
             line = line[1]
 
         line = line.split(';', 1)[0].strip()
@@ -178,44 +179,60 @@ class Compiler:
             self.arit(i, 3)
             return [i[0], self.addr(i[1]), self.val(i[2]), self.val(i[3])]
 
-        self.err('opcode')
+        raise ParseError('opcode')
 
     def compile_file (self, path):
         inp = open(path, 'r')
         self._files.append(os.path.basename(path))
-        self._linum.append(1)
+        self._ln.append(1)
         for l in inp:
             if '.include' in l:
-                self.compile_file(l.split('.include', 1)[1].strip())
+                self.compile_file(os.path.dirname(path) + '/' +
+                                  l.split('.include', 1)[1].strip())
             else:
                 a = self.instr(l)
                 if a is not None:
-                    self._code.append([a, (self._files[-1], self._linum[-1])])
+                    self._code.append([a, (self._files[-1], self._ln[-1])])
                     self._count += 1
-            self._linum[-1] += 1
+            self._ln[-1] += 1
         self._files.pop()
-        self._linum.pop()
+        self._ln.pop()
         inp.close()
 
     def compile (self, path):
         try:
             self._code.append([['jmp', ('lbl', 'main')], ('_', -1)])
             self._count += 1
-            self.compile_file(path)
+            self.compile_file(os.path.abspath(path))
             for instr in self._code:
                 if instr[0][0] in ('cal', 'jmp', 'beq', 'bne'):
                     if instr[0][1][0] == 'lbl':
                         lbl = instr[0][1][1]
                         if lbl in self._labels:
-                            instr[0][1] = 'imm', self._labels[lbl]
+                            instr[0][1] = 'imm', self._labels[lbl][0]
                             instr[1] = instr[1][0], instr[1][1], lbl
                         else:
-                            raise LabelError(lbl)
+                            raise LabelNotFound(lbl, instr[1][0], instr[1][1])
             return self._code
 
         except ParseError as e:
-            print('Parse error: ' + e.err + ' in ' + e.file + ' on line ' + str(e.line))
-        except LabelError as e:
-            print('Label not found: ' + e.lbl)
+            print('Parse error: ' + e.err +
+                  ' in ' + self._files[-1] +
+                  ' on line ' + str(self._ln[-1]),
+                  file=sys.stderr)
+
+        except DuplicateLabel as e:
+            print('Duplicate label: ' + e.lbl +
+                  ' in ' + self._files[-1] +
+                  ' on line ' + str(self._ln[-1]) +
+                  ' (first declared in ' + self._labels[e.lbl][1] +
+                  ' on line ' + str(self._labels[e.lbl][2]) + ')',
+                  file=sys.stderr)
+
+        except LabelNotFound as e:
+            print('Label not found: ' + e.lbl +
+                  ' (called in ' + e.file +
+                  ' on line ' + str(e.line) + ')',
+                  file=sys.stderr)
 
         sys.exit(1)
