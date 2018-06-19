@@ -19,14 +19,16 @@ class Interface:
     def __init__(self):
         self.log = open('log.txt', 'w')
         sys.stdout = self.log
-        self._i = 0
         self.flag = 0
         self._root = Tk()
+        self._istr_lst = []
         self._root.resizable(False, False)
         self._current = 33
+        self.current_file = ''
         self._root.title('Seselab')
+        self._previous_ip = 0
         self._dm = 1
-        self.jumper = ''
+        self.jump_text = ''
         self._ret_line = 1
         self.otp = []
         self.creat_reglist()
@@ -55,8 +57,7 @@ class Interface:
             sticky = 'w')
         self.otp.append(l)
 
-    def fill_canvas (self): 
-        self._istr_lst = []
+    def fill_canvas (self):        
         for row in range(len(self._infos)-1):
             t = self._infos[row]
             l = Label(self._frame, 
@@ -69,6 +70,10 @@ class Interface:
                    column = 1,
                    pady = 2)
             self._istr_lst.append(l)
+
+    def destroy_canvas (self):
+        for i in self._istr_lst:
+            i.destroy()
 
     def on_frame_configure (self, canvas):
         self._instr_list.configure(
@@ -124,14 +129,12 @@ class Interface:
                 columnspan = 3)
 
     def event_reset (self):
-        self._i = 0
-        self.jumper = ''
-        self._jumper.config(text = self.jumper)
+        self.jump_text = ''
+        self._jumper.config(text = self.jump_text)
         self.cpu = CPU(1048576, 32, self._code, '/dev/null')
-        self.cpu._ip += 1
-        self._infos = Instr().stack_infos(self._code)
+        # self.cpu._ip += 1
+        # self._infos = Instr().stack_infos(self._code)
         self._instr_list.yview_scroll(-2*len(self._infos),'units')
-        self.fill_canvas()
         self.update_display()
         self.button_state('normal')
         self._pause.config(state = 'normal')
@@ -141,22 +144,27 @@ class Interface:
 
 
     def event_load (self):
-        self._i = 0
-        self.jumper = ''
-        self._jumper.config(text = self.jumper)
-        self._code = Compiler().compile(self._file.get())
-        self.cpu = CPU(1048576, 32, self._code, '/dev/null')
-        self.cpu._ip += 1
-        self._infos = Instr().stack_infos(self._code)
-        self._instr_list.yview_scroll(-2*len(self._infos),'units')
-        self.add_line()
-        self.fill_canvas()
-        self.update_display()
-        self.button_state('normal')
-        self._pause.config(state = 'normal')
-        self._reset.config(state = 'normal')
-        self.update_reglist()
-        self.flag = 0
+        if self._file.get() != self.current_file:
+            self.jump_text = ''
+            self._jumper.config(text = self.jump_text)
+            self.destroy_canvas()
+            self._istr_lst = []
+            self.current_file = self._file.get()
+            self._code = Compiler().compile(self._file.get())
+            self.cpu = CPU(1048576, 32, self._code, '/dev/null')
+            # self.cpu._ip += 1
+            self._infos = Instr().stack_infos(self._code)
+            self._instr_list.yview_scroll(-2*len(self._infos),'units')
+            self.add_line()
+            self.fill_canvas()
+            self.update_display()
+            self.button_state('normal')
+            self._pause.config(state = 'normal')
+            self._reset.config(state = 'normal')
+            self.update_reglist()
+            self.flag = 0
+        else:
+            self.event_reset()
 
 
     def select (self, x):
@@ -205,22 +213,21 @@ class Interface:
             self._reg_lst[i].config(
                 text='r'+str(i)+': '+str(self.cpu._reg[i]))
         self._instr_list.yview_scroll(-2*len(self._infos),'units')
-        if self._i < 2:
-            self._istr_lst[self._i].config(bg = 'white')
-            self._istr_lst[self._i+1].config(bg = 'yellow')
-        elif self._i >= len(self._infos)-2:
-            self._istr_lst[self._i].config(bg = 'white')
-            self._istr_lst[self._i+1].config(bg = 'yellow')
+        if self.cpu._ip < 2:
+            self._istr_lst[self._previous_ip].config(bg = 'white')
+            self._istr_lst[self.cpu._ip].config(bg = 'yellow')
+        elif self.cpu._ip >= len(self._infos)-2:
+            self._istr_lst[self._previous_ip].config(bg = 'white')
+            self._istr_lst[self.cpu._ip].config(bg = 'yellow')
         else:
-            self._instr_list.yview_scroll(2*self._i-2,'units')
-            self._istr_lst[self._i].config(bg = 'white')
-            self._istr_lst[self._i+1].config(bg = 'yellow')
-        if self._code[self._i][0][0] == 'jmp':
-            self.jumper = self.jumper + 'jmp #' + str(
-                self._code[self._i][0][1][1]) + '-> '
-            self._jumper.config(text = self.jumper)
-        self._i += 1
-
+            self._istr_lst[self._previous_ip].config(bg = 'white')
+            self._istr_lst[self.cpu._ip].config(bg = 'yellow')
+        self._instr_list.yview_scroll(2*self.cpu._ip-4,'units')
+        self._previous_ip = self.cpu._ip
+        if self._code[self.cpu._ip][0][0] == 'jmp':
+            self.jump_text = self.jump_text + 'jmp #' + str(
+                self._code[self.cpu._ip][0][1][1]) + '-> '
+            self._jumper.config(text = self.jump_text)
 
     def event_set_zero (self):
         if self._current < 33:
@@ -243,6 +250,7 @@ class Interface:
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
+            self.output()
  
     def event_tempo (self):
         if self.flag == 1:
@@ -254,6 +262,7 @@ class Interface:
             else:
                 self._load.config(state = 'normal')
                 self._reset.config(state = 'normal')
+                self.output()
 
     def event_run (self):
         while self.cpu.cycle():
@@ -263,6 +272,7 @@ class Interface:
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
+            self.output()
     
     def event_run_slow (self):
         if self.flag == 0:
@@ -309,14 +319,14 @@ class Interface:
     def mouse_scroll(self, event):
         if event.delta:
             self._instr_list.yview_scroll(int(-1*(event.delta/120)), "units")
-            self._instr_list2.yview_scroll(int(-1*(event.delta/120)), "units")
+            # self._instr_list2.yview_scroll(int(-1*(event.delta/120)), "units")
         else:
             if event.num == 5:
                 move = 1
             else:
                 move = -1
             self._instr_list.yview_scroll(move, "units")
-            self._instr_list2.yview_scroll(move, "units")
+            # self._instr_list2.yview_scroll(move, "units")
 
     def creat_widget (self):
         # Frame 1
@@ -368,7 +378,7 @@ class Interface:
         self._to_rand = self.creat_button(self._root, 'Random', self.event_set_rand, 'disabled', 2, 10)
         self._to_zero = self.creat_button(self._root, 'Zero', self.event_set_zero, 'disabled', 3, 10)
         self._reset = self.creat_button(self._root, 'Reset', self.event_reset, 'disabled', 5, 0)
-        self._quit= self.creat_button(self._root, 'Close', self._root.quit, 'normal', 8, 17)
+        self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17)
         self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0)
         self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0)
 

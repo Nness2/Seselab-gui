@@ -16,9 +16,9 @@ class Instr:
         takeAll = ''
         file = program[i][1][0]
         line = program[i][1][1]
-        if line < 0:
-            line = program[i][0][1][1]
-            file = program[i][1][2]+'.asm'
+        # if line < 0:
+        #     line = program[i][0][1][1]
+        #     file = program[i][1][2]+'.asm'
         code = linecache.getline(file, line)
         code = code.replace('\t','')
         code = code.replace('\n','')
