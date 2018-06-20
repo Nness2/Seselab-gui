@@ -183,7 +183,7 @@ class Compiler:
 
     def compile_file (self, path):
         inp = open(path, 'r')
-        self._files.append(os.path.basename(path))
+        self._files.append(path)
         self._ln.append(1)
         for l in inp:
             if '.include' in l:

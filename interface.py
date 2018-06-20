@@ -23,7 +23,8 @@ class Interface:
         self._root = Tk()
         self._istr_lst = []
         self._root.resizable(False, False)
-        self._current = 33
+        self._current = None
+        self.cpu = None
         self.current_file = ''
         self._root.title('Seselab')
         self._previous_ip = 0
@@ -132,7 +133,6 @@ class Interface:
         self.jump_text = ''
         self._jumper.config(text = self.jump_text)
         self.cpu = CPU(1048576, 32, self._code, '/dev/null')
-        # self.cpu._ip += 1
         # self._infos = Instr().stack_infos(self._code)
         self._instr_list.yview_scroll(-2*len(self._infos),'units')
         self.update_display()
@@ -145,6 +145,7 @@ class Interface:
 
     def event_load (self):
         if self._file.get() != self.current_file:
+            self._previous_ip = 0
             self.jump_text = ''
             self._jumper.config(text = self.jump_text)
             self.destroy_canvas()
@@ -152,7 +153,6 @@ class Interface:
             self.current_file = self._file.get()
             self._code = Compiler().compile(self._file.get())
             self.cpu = CPU(1048576, 32, self._code, '/dev/null')
-            # self.cpu._ip += 1
             self._infos = Instr().stack_infos(self._code)
             self._instr_list.yview_scroll(-2*len(self._infos),'units')
             self.add_line()
@@ -163,27 +163,33 @@ class Interface:
             self._reset.config(state = 'normal')
             self.update_reglist()
             self.flag = 0
+            # self.event_step()
+            self._root.after(5,self.event_step)
         else:
             self.event_reset()
 
 
     def select (self, x):
-        if self._current == 33:
+        if self._current is None:
             self._reg_lst[x].config(bg = 'yellow')
             self._current = x
-            self._to_rand.config(state = 'normal')
-            self._to_zero.config(state = 'normal')
+            if self.cpu is not None:
+	            self._to_rand.config(state = 'normal')
+	            self._to_zero.config(state = 'normal')
         elif self._current == x:
             self._reg_lst[self._current].config(bg = 'white')
-            self._current = 33
+            self._current = None
             self._to_rand.config(state = 'disabled')
             self._to_zero.config(state = 'disabled')
         else:
             self._reg_lst[self._current].config(bg = 'white')
             self._reg_lst[x].config(bg = 'yellow')
             self._current = x
-            self._to_rand.config(state = 'normal')
-            self._to_zero.config(state = 'normal')
+            # self._to_rand.config(state = 'normal')
+            # self._to_zero.config(state = 'normal')
+            if self.cpu is not None:
+	            self._to_rand.config(state = 'normal')
+	            self._to_zero.config(state = 'normal')
 
     def creat_reglist (self):
         self._reg_lst = []
@@ -246,7 +252,6 @@ class Interface:
         if self.cpu.cycle():
             self.output()
             self.update_display()
-            pass
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
@@ -258,17 +263,16 @@ class Interface:
                 self.output()
                 self.update_display()
                 self._root.after(500,self.event_tempo)
-                pass
             else:
                 self._load.config(state = 'normal')
                 self._reset.config(state = 'normal')
+                self._pause.config(state = 'disabled')
                 self.output()
 
     def event_run (self):
         while self.cpu.cycle():
             self.output()
             self.update_display()
-            pass
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')

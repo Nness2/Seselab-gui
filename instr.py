@@ -1,6 +1,7 @@
 # #!/usr/bin/env python
 # # -*- coding: utf-8 -*-
 import linecache
+import os
 
 class Instr:
 
@@ -13,8 +14,9 @@ class Instr:
         return text
 
     def get_infos (self, program, i):
+
         takeAll = ''
-        file = program[i][1][0]
+        file = os.path.basename(program[i][1][0])
         line = program[i][1][1]
         # if line < 0:
         #     line = program[i][0][1][1]
@@ -23,15 +25,15 @@ class Instr:
         code = code.replace('\t','')
         code = code.replace('\n','')
         code = code.split(';', 1)[0].strip()
-        takeAll = self.split_infos(30, self.get_program(i,program))+self.split_infos(30, code)+file+':'+str(line)
+        takeAll = self.split_infos(25, self.get_program(i,program))+self.split_infos(25, code)+file+':'+str(line)
+        if len(program[i][1]) == 3:
+            takeAll += ' (' + program[i][1][2] + ')'
         return takeAll
 
     def stack_infos(self, program):
-        i = 0
-        instrs = []
-        for instr in program:
+        instrs = ['']
+        for i in range(1, len(program)):
             instrs.append(self.get_infos(program,i))
-            i += 1
         instrs.append("")
         return instrs
 
@@ -49,10 +51,10 @@ class Instr:
                     t = t+' @'
                 if j != 'reg' and j != 'imm' and j != 'mem':
                     t = t+str(j)
-                if j == 'ref':
-                    t = linecache.getline(file, line)
-                    t = t.replace('\t','')
-                    t = t.replace('\n','') 
-                    t = t.split(';', 1)[0].strip()
-                    return t 
+                # if j == 'ref':
+                #     t = linecache.getline(file, line)
+                #     t = t.replace('\t','')
+                #     t = t.replace('\n','') 
+                #     t = t.split(';', 1)[0].strip()
+                #     return t 
         return t
