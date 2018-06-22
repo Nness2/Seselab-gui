@@ -25,7 +25,7 @@ class Interface:
         self._root.resizable(False, False)
         self._current = None
         self.cpu = None
-        self.current_file = ''
+        # self.current_file = ''
         self._root.title('Seselab')
         self._previous_ip = 0
         self._dm = 1
@@ -141,16 +141,14 @@ class Interface:
         self._reset.config(state = 'normal')
         self.update_reglist()
         self.flag = 0
-
+        self._root.after(5,self.event_step)
 
     def event_load (self):
-        if self._file.get() != self.current_file:
             self._previous_ip = 0
             self.jump_text = ''
             self._jumper.config(text = self.jump_text)
             self.destroy_canvas()
             self._istr_lst = []
-            self.current_file = self._file.get()
             self._code = Compiler().compile(self._file.get())
             self.cpu = CPU(1048576, 32, self._code, '/dev/null')
             self._infos = Instr().stack_infos(self._code)
@@ -165,8 +163,6 @@ class Interface:
             self.flag = 0
             # self.event_step()
             self._root.after(5,self.event_step)
-        else:
-            self.event_reset()
 
 
     def select (self, x):
@@ -230,9 +226,9 @@ class Interface:
             self._istr_lst[self.cpu._ip].config(bg = 'yellow')
         self._instr_list.yview_scroll(2*self.cpu._ip-4,'units')
         self._previous_ip = self.cpu._ip
-        if self._code[self.cpu._ip][0][0] == 'jmp':
-            self.jump_text = self.jump_text + 'jmp #' + str(
-                self._code[self.cpu._ip][0][1][1]) + '-> '
+        if self._code[self.cpu._ip][0][0] == 'cal':
+            self.jump_text = self.jump_text + 'cal ' + str(
+                self._code[self.cpu._ip][1][2]) + '-> '
             self._jumper.config(text = self.jump_text)
 
     def event_set_zero (self):

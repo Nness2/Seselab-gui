@@ -17,3 +17,7 @@ toto:
 	prn r23 ; oui
 	prn r23 ; oui
 	prn r23 ; oui
+	cal tem
+
+tem:
+	prn r21
