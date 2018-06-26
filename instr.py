@@ -5,7 +5,7 @@ import os
 
 class Instr:
 
-    def split_infos(self, space, contents): # make space betwin differents elements
+    def split_infos(self, space, contents): 
         text = contents
         size = len(text)
         while size < space:
@@ -18,14 +18,11 @@ class Instr:
         takeAll = ''
         file = os.path.basename(program[i][1][0])
         line = program[i][1][1]
-        # if line < 0:
-        #     line = program[i][0][1][1]
-        #     file = program[i][1][2]+'.asm'
         code = linecache.getline(file, line)
         code = code.replace('\t','')
         code = code.replace('\n','')
         code = code.split(';', 1)[0].strip()
-        takeAll = self.split_infos(25, self.get_program(i,program))+self.split_infos(25, code)+file+':'+str(line)
+        takeAll = self.split_infos(25, self.get_program(program[i][0])) + self.split_infos(25, code) + file + ':' + str(line)
         if len(program[i][1]) == 3:
             takeAll += ' (' + program[i][1][2] + ')'
         return takeAll
@@ -37,11 +34,10 @@ class Instr:
         instrs.append("")
         return instrs
 
-    def get_program (self, k, program): 
-        file = program[k][1][0]
-        line = program[k][1][1]
+
+    def get_program (self, program):
         t = ''
-        for i in program[k][0]:
+        for i in program:
             for j in i:
                 if j == 'reg':
                     t = t+' r'
@@ -51,10 +47,22 @@ class Instr:
                     t = t+' @'
                 if j != 'reg' and j != 'imm' and j != 'mem':
                     t = t+str(j)
-                # if j == 'ref':
-                #     t = linecache.getline(file, line)
-                #     t = t.replace('\t','')
-                #     t = t.replace('\n','') 
-                #     t = t.split(';', 1)[0].strip()
-                #     return t 
         return t
+        
+    # def get_program (self, program):
+    #     text = ''
+    #     for i in program:
+    #         if i[0] is not None:
+    #             text = self.get_program (i) + text
+    #         else:
+    #             if i == 'reg':
+    #                 return ' r'
+    #             elif i == 'imm':
+    #                 return ' #'
+    #             elif i == 'mem':
+    #                 return ' @'
+    #             elif i == 'ref':
+    #                 return ' !'
+    #             else:
+    #                 return str(i)
+    #     return str(text)

@@ -28,41 +28,35 @@ class Interface:
         self.creat_widget()
         self.cpu = None
         self._curt_reg = None
-        # Capture
-        self.log = open('log.txt', 'w')
-        sys.stdout = self.log
-        self.bak = sys.stdout # on sauvegarde l'ancien stdout
-        
+        self._previous_ip = 0
+
+        self._output = open('log.txt', 'w')
+        sys.stdout = self._output
+        self.bak = sys.stdout 
+
     def event_load (self):
         self._pause_flag = 0
-        self._previous_ip = 0
-        self._ret_line = 1
-        self.jump_text = ''
-        self._jumper.config(text = self.jump_text)
+        self.cal_text = ''
+        self._call_historic.config(text = self.cal_text)
         self.destroy_canvas()
-        self._istr_lst = []
+        self._instr_lab_list = []
         self._code = Compiler().compile(self._file.get())
         self.cpu = CPU(1048576, 32, self._code, '/dev/null')
         self._infos = Instr().stack_infos(self._code)
-        self._instr_list.yview_scroll(-2*len(self._infos),'units')
-        self.add_line()
+        self._instr_display.yview_scroll(-2*len(self._infos),'units')
         self.fill_canvas()
         self.update_display()
         self.button_state('normal')
         self._pause.config(state = 'normal')
         self._reset.config(state = 'normal')
-        self.update_reglist()
-        # self.event_step()
         self._root.after(1,self.event_step)
 
     def event_reset (self):
         self._pause_flag = 0
-        self.jump_text = ''
-        self._jumper.config(text = self.jump_text)
-        self._instr_list.yview_scroll(-2*len(self._infos),'units')
+        self.cal_text = ''
+        self._call_historic.config(text = self.cal_text)
         self.cpu = CPU(1048576, 32, self._code, '/dev/null')       
         self.update_display()
-        self.update_reglist()
         self.button_state('normal')
         self._pause.config(state = 'normal')
         self._reset.config(state = 'normal')
@@ -113,7 +107,7 @@ class Interface:
                 text = 'r'+str(i)+': '+str(self.cpu._reg[i]))
 
     def Intercepte(self):
-        self.log.close()
+        self._output.close()
         sys.stdout = self.bak 
         os.remove('log.txt')
         self._root.destroy() 
@@ -125,7 +119,8 @@ class Interface:
             t = self._infos[row]
             l = Label(self._frame, text = t, width = 75, anchor = 'w', bg = 'white', font = font)
             l.grid(row = row, column = 1, pady = 2)
-            self._istr_lst.append(l)
+            self._instr_lab_list.append(l)
+        self._instr_lab_list[0].grid_forget()
 
     def event_step (self):
         if self.cpu.cycle():
@@ -135,13 +130,14 @@ class Interface:
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
-            self.output()
+            # self.output()
             return False
 
     def event_run (self):
         while self.event_step():
             pass
-    
+        # self._root.after(1, self._output_display.yview_scroll(2*len(self._infos), "units"))
+
     def event_run_slow (self):
         if self._pause_flag == 0:
             self._pause_flag = 1
@@ -201,50 +197,35 @@ class Interface:
             self._to_rand.config(state = 'normal')
             self._to_zero.config(state = 'normal')
 
+    def update_display (self):
+        self.update_reglist()
+        self._instr_display.yview_scroll(-2*len(self._infos),'units')
+        self._instr_display.yview_scroll(2*self.cpu._ip-6,'units')
+        self._instr_lab_list[self._previous_ip].config(bg = 'white')
+        self._instr_lab_list[self.cpu._ip].config(bg = 'yellow')
+        self._previous_ip = self.cpu._ip
 
-
-
-    def add_line (self):
-        l = Label(self._frame2, 
-            text = '', 
-            anchor = 'nw', 
-            bg = 'white',
-            height = 1)
-        l.grid(row = self._ret_line, 
-            column = 1, 
-            sticky = 'w')
-        self.otp.append(l)
+        if self._code[self.cpu._ip][0][0] == 'cal':
+            self.cal_text = self.cal_text + 'cal ' + str(
+                self._code[self.cpu._ip][1][2]) + '-> '
+            self._call_historic.config(text = self.cal_text)
 
     def destroy_canvas (self):
-        for i in self._istr_lst:
-            i.destroy()
+        for obj in self._instr_lab_list:
+            obj.destroy()
 
     def on_frame_configure (self, canvas):
-        self._instr_list.configure(
-            scrollregion = self._instr_list.bbox("all"))
-        self._instr_list2.configure(
-            scrollregion = self._instr_list2.bbox("all"))
+        self._instr_display.configure(
+            scrollregion = self._instr_display.bbox("all"))
+        self._output_display.configure(
+            scrollregion = self._output_display.bbox("all"))
 
-    def update_display (self):
-        for i in range (32):
-            self._reg_lst[i].config(
-                text='r'+str(i)+': '+str(self.cpu._reg[i]))
-        self._instr_list.yview_scroll(-2*len(self._infos),'units')
-        if self.cpu._ip < 2:
-            self._istr_lst[self._previous_ip].config(bg = 'white')
-            self._istr_lst[self.cpu._ip].config(bg = 'yellow')
-        elif self.cpu._ip >= len(self._infos)-2:
-            self._istr_lst[self._previous_ip].config(bg = 'white')
-            self._istr_lst[self.cpu._ip].config(bg = 'yellow')
-        else:
-            self._istr_lst[self._previous_ip].config(bg = 'white')
-            self._istr_lst[self.cpu._ip].config(bg = 'yellow')
-        self._instr_list.yview_scroll(2*self.cpu._ip-4,'units')
-        self._previous_ip = self.cpu._ip
-        if self._code[self.cpu._ip][0][0] == 'cal':
-            self.jump_text = self.jump_text + 'cal ' + str(
-                self._code[self.cpu._ip][1][2]) + '-> '
-            self._jumper.config(text = self.jump_text)
+    def mouse_scroll(self, event):
+            if event.num == 5:
+                move = 1
+            else:
+                move = -1
+            self._instr_display.yview_scroll(move, "units")
 
     def button_state (self, state):
         self._to_rand.config(state = state)
@@ -255,53 +236,38 @@ class Interface:
         self._skip.config(state = state)
 
     def output (self):
-        linecache.clearcache()
-        if 'prc #10 ' in self._infos[self.cpu._ip-1]:
-            self._ret_line += 1
-            self.add_line()
-        else:
-            sortie = linecache.getline('log.txt', self._ret_line)
-            self.otp[self._ret_line-1].config(text = sortie)
-
-    def mouse_scroll(self, event):
-        if event.delta:
-            self._instr_list.yview_scroll(int(-1*(event.delta/120)), "units")
-            # self._instr_list2.yview_scroll(int(-1*(event.delta/120)), "units")
-        else:
-            if event.num == 5:
-                move = 1
-            else:
-                move = -1
-            self._instr_list.yview_scroll(move, "units")
-            # self._instr_list2.yview_scroll(move, "units")
+        fd = open("log.txt", "r")
+        output_text = fd.read()
+        self._outpt.config(text = output_text)
+        self._output_display.yview_scroll(2, "units")
+        fd.close()
 
     def creat_widget (self):
-    	
+        font_text = ('helvetic', 12)
         # Frame 1
-        self._instr_list = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
-        self._frame = Frame(self._instr_list, background = "#ffffff")
-        self._vsb = Scrollbar(self._root, orient = "vertical", command = self._instr_list.yview)
-        self._instr_list.configure(yscrollcommand = self._vsb.set)
+        self._instr_display = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
+        self._frame = Frame(self._instr_display, background = "#ffffff")
+        self._vsb = Scrollbar(self._root, orient = "vertical", command = self._instr_display.yview)
+        self._instr_display.configure(yscrollcommand = self._vsb.set)
         self._vsb.grid(rowspan = 5, column = 7, row = 1, sticky = 'nse')
-        self._instr_list.grid(rowspan = 5, columnspan = 7, column = 1, row = 1, sticky = 'nesw', pady = 5, padx = 5)
-        self._instr_list.create_window((4,4), window=self._frame, anchor="ne")
-        self._frame.bind("<Configure>", 
-            lambda event, 
-            canvas = self._instr_list: 
-            self.on_frame_configure(self._instr_list))
-        self._istr_lst = []
+        self._instr_display.grid(rowspan = 5, columnspan = 7, column = 1, row = 1, sticky = 'nesw', pady = 5, padx = 5)
+        self._instr_display.create_window((4,4), window=self._frame, anchor="ne")
+        self._frame.bind("<Configure>", lambda event, canvas = self._instr_display: 
+            self.on_frame_configure(self._instr_display))
+        self._instr_lab_list = []
 
         # Frame 2
-        self._instr_list2 = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
-        self._frame2 = Frame(self._instr_list2, background = "#ffffff")
-        self._vsb2 = Scrollbar(self._root, orient = "vertical", command = self._instr_list2.yview)
-        self._instr_list2.configure(yscrollcommand = self._vsb2.set)
+        self._output_display = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
+        self._frame2 = Frame(self._output_display, background = "#ffffff")
+        self._vsb2 = Scrollbar(self._root, orient = "vertical", command = self._output_display.yview)
+        self._output_display.configure(yscrollcommand = self._vsb2.set)
         self._vsb2.grid(rowspan = 5, column = 8, row = 11, sticky = 'nse')
-        self._instr_list2.grid(rowspan = 5, columnspan = 8, column = 1, row = 11, sticky = 'nesw', pady = 5, padx = 5)
-        self._instr_list2.create_window((4,4), window=self._frame2, anchor="ne")
-        self._frame2.bind("<Configure>", lambda event, canvas = self._instr_list2: 
-        	self.on_frame_configure(self._instr_list2))
-        self.otp = []
+        self._output_display.grid(rowspan = 5, columnspan = 8, column = 1, row = 11, sticky = 'nesw', pady = 5, padx = 5)
+        self._output_display.create_window((4,4), window=self._frame2, anchor="ne")
+        self._frame2.bind("<Configure>", lambda event, canvas = self._output_display: 
+            self.on_frame_configure(self._output_display))
+        self._outpt = Label(self._frame2, width = 75, anchor = 'nw', justify = 'left', bg = 'white', font = font_text)
+        self._outpt.grid(row = 1, column = 1, pady = 2, sticky = 'w')
         self._root.bind_all("<MouseWheel>", self.mouse_scroll)
         self._root.bind("<Button-4>", self.mouse_scroll)
         self._root.bind("<Button-5>", self.mouse_scroll)
@@ -321,13 +287,13 @@ class Interface:
 
         # Text
         self._inject_fault = Label(self._root, text = 'Inject fault:', g = None, width = 10, 
-        	font = ('helvetic', 11, 'bold'))
+            font = font_text)
         self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
 
-        # Jump list
-        self._jumper = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97, 
-        	font = ('helvetic', 11, 'bold'), relief = SUNKEN)
-        self._jumper.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)  
+        # Call list
+        self._call_historic = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97, 
+            font = font_text, relief = SUNKEN)
+        self._call_historic.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)  
 
 
 
