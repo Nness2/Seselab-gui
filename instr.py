@@ -19,8 +19,6 @@ class Instr:
         file = os.path.basename(program[i][1][0])
         line = program[i][1][1]
         code = linecache.getline(file, line)
-        code = code.replace('\t','')
-        code = code.replace('\n','')
         code = code.split(';', 1)[0].strip()
         takeAll = self.split_infos(25, self.get_program(program[i][0])) + self.split_infos(25, code) + file + ':' + str(line)
         if len(program[i][1]) == 3:
@@ -34,35 +32,21 @@ class Instr:
         instrs.append("")
         return instrs
 
-
     def get_program (self, program):
-        t = ''
-        for i in program:
-            for j in i:
-                if j == 'reg':
-                    t = t+' r'
-                if j == 'imm':
-                    t = t+' #'
-                if j == 'mem':
-                    t = t+' @'
-                if j != 'reg' and j != 'imm' and j != 'mem':
-                    t = t+str(j)
-        return t
-        
-    # def get_program (self, program):
-    #     text = ''
-    #     for i in program:
-    #         if i[0] is not None:
-    #             text = self.get_program (i) + text
-    #         else:
-    #             if i == 'reg':
-    #                 return ' r'
-    #             elif i == 'imm':
-    #                 return ' #'
-    #             elif i == 'mem':
-    #                 return ' @'
-    #             elif i == 'ref':
-    #                 return ' !'
-    #             else:
-    #                 return str(i)
-    #     return str(text)
+        text = ''
+        if not isinstance(program, str) is not isinstance(program, int):
+            for i in range(len(program)):
+                text = text + self.get_program(program[i])
+        else :
+            if program == 'reg':
+                return ' r' + text
+            elif program == 'imm':
+                return ' #' + text
+            elif program == 'mem':
+                return ' @' + text
+            elif program == 'ref':
+                return ' !' + text
+            else:
+                return str(program)
+        text = text.replace('! ','!')
+        return text

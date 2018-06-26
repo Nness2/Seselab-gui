@@ -1,48 +1,49 @@
-	main:
-	prn r23 ; oui
-	prn !r23 ; oui
-	prn r23 ; oui
-	prc #10 ; oui
-	prn #10 ; oui
+main:
+	mov r23 #8
+	prn r23 
+	prn !r23 
+	prn r23 
+	prc #10 
+	prn #10 
 
-	prn r24 ; oui
-jmp toto
-	prn r23 ; oui
-	prn r23 ; oui
+	prn r24 
+	jmp toto
+	prn r23 
+	prn r23 
 
 toto:
-	prn r23 ; oui
-	prn r23 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-	prn r23 ; oui
-	prn r23 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-	prn r23 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-	prn r23 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-	prn r23 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prn r23 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
-		prc #10 ; oui
-	prn #10 ; oui
+	prn r23 
+	prn r23 
+	prc #10 
+	prn #10 
+	prn r23 
+	prn r23 
+	prc #10 
+	prn #10 
+	prn r23 
+	prc #10 
+	prn #10 
+	prn r23 
+	prc #10 
+	prn #10 
+	prn r23 
+	prc #10 
+	prn #10 
+	prc #10
+	prn #10 
+	prc #10 
+	prn #10 
+	prc #10 
+	prn #10 
+	prn r23 
+	prc #10 
+	prn #10 
+	prc #10 
+	prn #10 
+	prc #10 
+	prn #10 
+	prc #10 
+	prn #10 
 	cal tem
 
 tem:

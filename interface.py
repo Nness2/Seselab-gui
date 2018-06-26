@@ -41,7 +41,7 @@ class Interface:
         self.destroy_canvas()
         self._instr_lab_list = []
         self._code = Compiler().compile(self._file.get())
-        self.cpu = CPU(1048576, 32, self._code, '/dev/null')
+        self.cpu = CPU(1048576, 32, self._code, 'conso.txt')
         self._infos = Instr().stack_infos(self._code)
         self._instr_display.yview_scroll(-2*len(self._infos),'units')
         self.fill_canvas()
@@ -110,6 +110,7 @@ class Interface:
         self._output.close()
         sys.stdout = self.bak 
         os.remove('log.txt')
+        os.remove('conso.txt')
         self._root.destroy() 
 
     def fill_canvas (self):
