@@ -35,23 +35,14 @@ class Interface:
         self.bak = sys.stdout 
 
     def event_load (self):
-        self._pause_flag = 0
-        self.cal_text = ''
-        self._call_historic.config(text = self.cal_text)
         self.destroy_canvas()
         self._instr_lab_list = []
         self._code = Compiler().compile(self._file.get())
-        self.cpu = CPU(1048576, 32, self._code, 'conso.txt')
         self._infos = Instr().stack_infos(self._code)
-        self._instr_display.yview_scroll(-2*len(self._infos),'units')
         self.fill_canvas()
-        self.update_display()
-        self.button_state('normal')
-        self._pause.config(state = 'normal')
-        self._reset.config(state = 'normal')
-        self._root.after(1,self.event_step)
+        self.event_reset()
 
-    def event_reset (self):
+    def event_reset (self):    
         self._pause_flag = 0
         self.cal_text = ''
         self._call_historic.config(text = self.cal_text)
@@ -110,7 +101,10 @@ class Interface:
         self._output.close()
         sys.stdout = self.bak 
         os.remove('log.txt')
-        os.remove('conso.txt')
+        try:
+            os.remove('conso.txt')
+        except:
+            pass
         self._root.destroy() 
 
     def fill_canvas (self):
@@ -125,19 +119,18 @@ class Interface:
 
     def event_step (self):
         if self.cpu.cycle():
-            self.output()
             self.update_display()
             return True
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
-            # self.output()
+            self.output()
             return False
 
     def event_run (self):
         while self.event_step():
             pass
-        # self._root.after(1, self._output_display.yview_scroll(2*len(self._infos), "units"))
+        # self.nb_line_s()
 
     def event_run_slow (self):
         if self._pause_flag == 0:
@@ -205,10 +198,12 @@ class Interface:
         self._instr_lab_list[self._previous_ip].config(bg = 'white')
         self._instr_lab_list[self.cpu._ip].config(bg = 'yellow')
         self._previous_ip = self.cpu._ip
+        self.update_historic()
 
+    def update_historic (self):
         if self._code[self.cpu._ip][0][0] == 'cal':
-            self.cal_text = self.cal_text + 'cal ' + str(
-                self._code[self.cpu._ip][1][2]) + '-> '
+            self.cal_text = self.cal_text + ' → ' + 'cal ' + self._code[self.cpu._ip][1][2]
+            self.cal_overwrite()
             self._call_historic.config(text = self.cal_text)
 
     def destroy_canvas (self):
@@ -237,17 +232,39 @@ class Interface:
         self._skip.config(state = state)
 
     def output (self):
+        self._output_text = ''
         fd = open("log.txt", "r")
-        output_text = fd.read()
-        self._outpt.config(text = output_text)
-        self._output_display.yview_scroll(2, "units")
+        self._output_text = fd.read()
+        # self._output_text = self.return_line(self._output_text)
+        self._outpt.config(text = self._output_text)
+        self._root.after(1, self._output_display.yview_scroll(2, "units"))
         fd.close()
 
+    def return_line(self, text):
+        cmp = 0
+        for i in range(len(text)):
+            if cmp < 94 or text[i] != '\n':
+                cmp += 1
+            else:
+                cmp = 0
+                if text[i] != '\n':
+                    text = text[:i]+ '\n' + text [i:]
+        return text
+
+    def cal_overwrite (self):
+        if len(self.cal_text) > 86:
+            self.cal_text = '... ' + self.cal_text[len(self.cal_text)-86:]
+
+    # def nb_line_s (self):
+    #     for i in self._output_text:
+    #         self._root.after(1, self._output_display.yview_scroll(4, "units"))
+
     def creat_widget (self):
-        font_text = ('helvetic', 12)
+        font_text = tkFont.nametofont("TkFixedFont")
+        font_text.configure(size=14)
         # Frame 1
-        self._instr_display = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
-        self._frame = Frame(self._instr_display, background = "#ffffff")
+        self._instr_display = Canvas(self._root, borderwidth = 0, height = 150, bg = "white")
+        self._frame = Frame(self._instr_display, bg = "white")
         self._vsb = Scrollbar(self._root, orient = "vertical", command = self._instr_display.yview)
         self._instr_display.configure(yscrollcommand = self._vsb.set)
         self._vsb.grid(rowspan = 5, column = 7, row = 1, sticky = 'nse')
@@ -258,8 +275,8 @@ class Interface:
         self._instr_lab_list = []
 
         # Frame 2
-        self._output_display = Canvas(self._root, borderwidth = 0, height = 150, background="#ffffff")
-        self._frame2 = Frame(self._output_display, background = "#ffffff")
+        self._output_display = Canvas(self._root, borderwidth = 0, height = 150, bg = "white")
+        self._frame2 = Frame(self._output_display, bg= "white")
         self._vsb2 = Scrollbar(self._root, orient = "vertical", command = self._output_display.yview)
         self._output_display.configure(yscrollcommand = self._vsb2.set)
         self._vsb2.grid(rowspan = 5, column = 8, row = 11, sticky = 'nse')
@@ -267,7 +284,7 @@ class Interface:
         self._output_display.create_window((4,4), window=self._frame2, anchor="ne")
         self._frame2.bind("<Configure>", lambda event, canvas = self._output_display: 
             self.on_frame_configure(self._output_display))
-        self._outpt = Label(self._frame2, width = 75, anchor = 'nw', justify = 'left', bg = 'white', font = font_text)
+        self._outpt = Label(self._frame2, width = 94, anchor = 'nw', justify = 'left', bg = 'white', font = font_text)
         self._outpt.grid(row = 1, column = 1, pady = 2, sticky = 'w')
         self._root.bind_all("<MouseWheel>", self.mouse_scroll)
         self._root.bind("<Button-4>", self.mouse_scroll)
@@ -288,7 +305,7 @@ class Interface:
 
         # Text
         self._inject_fault = Label(self._root, text = 'Inject fault:', g = None, width = 10, 
-            font = font_text)
+            font = ('helvetic', 12))
         self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
 
         # Call list
