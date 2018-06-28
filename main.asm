@@ -1,6 +1,52 @@
 main:
-	mov r23 #8
-	prn r23 
+	mov r23 #888
+	prn r23
+	prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	 prn r23
+	  
 	prn !r23 
 	prn r23
 	prn #111

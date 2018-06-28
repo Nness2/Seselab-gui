@@ -51,7 +51,7 @@ class Interface:
         self.button_state('normal')
         self._pause.config(state = 'normal')
         self._reset.config(state = 'normal')
-        self._root.after(1,self.event_step)
+        self._root.after(1, self.event_step)
 
     def pick_file (self):
         filename = filedialog.askopenfilename(initialdir = os.getcwd(), 
@@ -63,7 +63,7 @@ class Interface:
 
     def fill_text_field (self):
         if len(sys.argv) > 1:
-            if sys.argv[1][len(sys.argv[1])-4:len(sys.argv[1])] == '.asm':
+            if sys.argv[1][len(sys.argv[1]) - 4 : len(sys.argv[1])] == '.asm':
                 text_field = sys.argv[1]
             else:
                 text_field = 'Choose file…'
@@ -86,16 +86,16 @@ class Interface:
         reg_num = 0
         for j in range(4):
             for k in range(8):
-                l = Button(self._root, text = 'r'+str(reg_num)+': 0', bg = 'white', width = 9, 
+                l = Button(self._root, text = 'r' + str(reg_num) + ': 0', bg = 'white', width = 9, 
                     command = lambda x = reg_num : self.select(x), font = ('helvetic', 11))
-                l.grid(column = k+1, row = j+6, sticky='we')
+                l.grid(column = k + 1, row = j + 6, sticky = 'we')
                 self._reg_lst.append(l)
                 reg_num += 1
 
     def update_reglist (self):
         for i in range (32):
             self._reg_lst[i].config(
-                text = 'r'+str(i)+': '+str(self.cpu._reg[i]))
+                text = 'r' + str(i) + ': ' + str(self.cpu._reg[i]))
 
     def Intercepte(self):
         self._output.close()
@@ -109,8 +109,8 @@ class Interface:
 
     def fill_canvas (self):
         font = tkFont.nametofont("TkFixedFont")
-        font.configure(size=14)
-        for row in range(len(self._infos)-1):
+        font.configure(size = 14)
+        for row in range(len(self._infos) - 1):
             t = self._infos[row]
             l = Label(self._frame, text = t, width = 75, anchor = 'w', bg = 'white', font = font)
             l.grid(row = row, column = 1, pady = 2)
@@ -120,6 +120,7 @@ class Interface:
     def event_step (self):
         if self.cpu.cycle():
             self.update_display()
+            self.output()
             return True
         else:
             self.button_state('disabled')
@@ -130,7 +131,6 @@ class Interface:
     def event_run (self):
         while self.event_step():
             pass
-        # self.nb_line_s()
 
     def event_run_slow (self):
         if self._pause_flag == 0:
@@ -165,14 +165,14 @@ class Interface:
     def event_set_zero (self):
         if self._curt_reg is not None:
             self._reg_lst[self._curt_reg].config(
-                text = 'r'+str(self._curt_reg)+': 0')
+                text = 'r' + str(self._curt_reg) + ': 0')
             self.cpu._reg[self._curt_reg] = 0
 
     def event_set_rand (self):
         if self._curt_reg is not None:
             r = random.randint(0,255)
             self._reg_lst[self._curt_reg].config(
-                text='r'+str(self._curt_reg)+': '+str(r))
+                text = 'r' + str(self._curt_reg) + ': ' + str(r))
             self.cpu._reg[self._curt_reg] = r
 
     def select (self, x):
@@ -193,8 +193,8 @@ class Interface:
 
     def update_display (self):
         self.update_reglist()
-        self._instr_display.yview_scroll(-2*len(self._infos),'units')
-        self._instr_display.yview_scroll(2*self.cpu._ip-6,'units')
+        self._instr_display.yview_scroll(-2 * len(self._infos), 'units')
+        self._instr_display.yview_scroll(2 * self.cpu._ip - 6, 'units')
         self._instr_lab_list[self._previous_ip].config(bg = 'white')
         self._instr_lab_list[self.cpu._ip].config(bg = 'yellow')
         self._previous_ip = self.cpu._ip
@@ -235,7 +235,7 @@ class Interface:
         self._output_text = ''
         fd = open("log.txt", "r")
         self._output_text = fd.read()
-        # self._output_text = self.return_line(self._output_text)
+        self._output_text = self.return_line(self._output_text)
         self._outpt.config(text = self._output_text)
         self._root.after(1, self._output_display.yview_scroll(2, "units"))
         fd.close()
@@ -243,12 +243,13 @@ class Interface:
     def return_line(self, text):
         cmp = 0
         for i in range(len(text)):
-            if cmp < 94 or text[i] != '\n':
+            if cmp < 94 and text[i] != '\n': #and text[i] != '\n':
                 cmp += 1
+            elif text[i] == '\n':
+            	pass
             else:
                 cmp = 0
-                if text[i] != '\n':
-                    text = text[:i]+ '\n' + text [i:]
+                text = text[:i]+ '\n' + text [i:]
         return text
 
     def cal_overwrite (self):
@@ -269,19 +270,19 @@ class Interface:
         self._instr_display.configure(yscrollcommand = self._vsb.set)
         self._vsb.grid(rowspan = 5, column = 7, row = 1, sticky = 'nse')
         self._instr_display.grid(rowspan = 5, columnspan = 7, column = 1, row = 1, sticky = 'nesw', pady = 5, padx = 5)
-        self._instr_display.create_window((4,4), window=self._frame, anchor="ne")
+        self._instr_display.create_window((4, 4), window = self._frame, anchor = "ne")
         self._frame.bind("<Configure>", lambda event, canvas = self._instr_display: 
             self.on_frame_configure(self._instr_display))
         self._instr_lab_list = []
 
         # Frame 2
         self._output_display = Canvas(self._root, borderwidth = 0, height = 150, bg = "white")
-        self._frame2 = Frame(self._output_display, bg= "white")
+        self._frame2 = Frame(self._output_display, bg = "white")
         self._vsb2 = Scrollbar(self._root, orient = "vertical", command = self._output_display.yview)
         self._output_display.configure(yscrollcommand = self._vsb2.set)
         self._vsb2.grid(rowspan = 5, column = 8, row = 11, sticky = 'nse')
         self._output_display.grid(rowspan = 5, columnspan = 8, column = 1, row = 11, sticky = 'nesw', pady = 5, padx = 5)
-        self._output_display.create_window((4,4), window=self._frame2, anchor="ne")
+        self._output_display.create_window((4, 4), window = self._frame2, anchor="ne")
         self._frame2.bind("<Configure>", lambda event, canvas = self._output_display: 
             self.on_frame_configure(self._output_display))
         self._outpt = Label(self._frame2, width = 94, anchor = 'nw', justify = 'left', bg = 'white', font = font_text)
