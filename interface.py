@@ -2,16 +2,14 @@
 # # -*- coding: utf-8 -*-
 from tkinter import * 
 from compiler import Compiler
-from probe  import Probe
-from memory import Memory
 from cpu import CPU
+from consumption import Consumption
 from instr import Instr
 from tkinter import filedialog
 import tkinter.messagebox as msg
-import linecache
 import tkinter as tk
-import os
 import tkinter.font as tkFont
+import os
 import sys
 import random
 
@@ -46,15 +44,17 @@ class Interface:
         self._pause_flag = 0
         self.cal_text = ''
         self._call_historic.config(text = self.cal_text)
-        self.cpu = CPU(1048576, 32, self._code, '/dev/null')       
+        self.cpu = CPU(1048576, 32, self._code, 'conso.txt')
         self.update_display()
         self.button_state('normal')
         self._pause.config(state = 'normal')
         self._reset.config(state = 'normal')
+        self._consumption.config(state = 'disabled')
         self._root.after(1, self.event_step)
 
+
     def pick_file (self):
-        filename = filedialog.askopenfilename(initialdir = os.getcwd(), 
+        filename = filedialog.askopenfilename(initialdir = os.getcwd(),
             title = "Select file", 
             filetypes = (("asm files", "*.asm"), ("all files", "*.*")))
         if len(filename) > 0:
@@ -86,7 +86,7 @@ class Interface:
         reg_num = 0
         for j in range(4):
             for k in range(8):
-                l = Button(self._root, text = 'r' + str(reg_num) + ': 0', bg = 'white', width = 9, 
+                l = Button(self._root, text = 'r' + str(reg_num) + ': 0', bg = 'white', width = 9,
                     command = lambda x = reg_num : self.select(x), font = ('helvetic', 11))
                 l.grid(column = k + 1, row = j + 6, sticky = 'we')
                 self._reg_lst.append(l)
@@ -125,7 +125,9 @@ class Interface:
         else:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
+            self._consumption.config(state = 'normal')
             self.output()
+            self.cpu._probe._probe.close()
             return False
 
     def event_run (self):
@@ -260,6 +262,9 @@ class Interface:
     #     for i in self._output_text:
     #         self._root.after(1, self._output_display.yview_scroll(4, "units"))
 
+    def consumption (self):
+        Consumption('conso.txt').creat_plot()
+
     def creat_widget (self):
         font_text = tkFont.nametofont("TkFixedFont")
         font_text.configure(size=14)
@@ -290,7 +295,7 @@ class Interface:
         self._root.bind_all("<MouseWheel>", self.mouse_scroll)
         self._root.bind("<Button-4>", self.mouse_scroll)
         self._root.bind("<Button-5>", self.mouse_scroll)
-        
+
         # Button
         self._step = self.creat_button(self._root, 'Step', self.event_step, 'disabled', 8, 1)
         self._run = self.creat_button(self._root, 'Run', self.event_run, 'disabled', 8, 2)
@@ -300,19 +305,20 @@ class Interface:
         self._to_rand = self.creat_button(self._root, 'Random', self.event_set_rand, 'disabled', 2, 10)
         self._to_zero = self.creat_button(self._root, 'Zero', self.event_set_zero, 'disabled', 3, 10)
         self._reset = self.creat_button(self._root, 'Reset', self.event_reset, 'disabled', 5, 0)
-        self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17)
         self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0)
         self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0)
+        self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17)
+        self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'disabled', 7, 17)
 
         # Text
-        self._inject_fault = Label(self._root, text = 'Inject fault:', g = None, width = 10, 
+        self._inject_fault = Label(self._root, text = 'Inject fault:', g = None, width = 10,
             font = ('helvetic', 12))
         self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
 
         # Call list
-        self._call_historic = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97, 
+        self._call_historic = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97,
             font = font_text, relief = SUNKEN)
-        self._call_historic.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)  
+        self._call_historic.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)
 
 
 
