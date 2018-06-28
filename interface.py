@@ -246,7 +246,7 @@ class Interface:
             if cmp < 94 and text[i] != '\n': #and text[i] != '\n':
                 cmp += 1
             elif text[i] == '\n':
-            	pass
+            	cmp = 0
             else:
                 cmp = 0
                 text = text[:i]+ '\n' + text [i:]
