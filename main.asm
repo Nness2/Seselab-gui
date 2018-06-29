@@ -11,42 +11,6 @@ main:
 	 prn r23
 	 prn r23
 	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	 prn r23
-	  
 	prn !r23 
 	prn r23
 	prn #111

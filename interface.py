@@ -112,9 +112,10 @@ class Interface:
         font.configure(size = 14)
         for row in range(len(self._infos) - 1):
             t = self._infos[row]
-            l = Label(self._frame, text = t, width = 75, anchor = 'w', bg = 'white', font = font)
+            l = Label(self._frame, text = t, width = 85, anchor = 'w', bg = 'white', font = font)
             l.grid(row = row, column = 1, pady = 2)
             self._instr_lab_list.append(l)
+            self.bind_scrollbar(l)
         self._instr_lab_list[0].grid_forget()
 
     def event_step (self):
@@ -212,19 +213,6 @@ class Interface:
         for obj in self._instr_lab_list:
             obj.destroy()
 
-    def on_frame_configure (self, canvas):
-        self._instr_display.configure(
-            scrollregion = self._instr_display.bbox("all"))
-        self._output_display.configure(
-            scrollregion = self._output_display.bbox("all"))
-
-    def mouse_scroll(self, event):
-            if event.num == 5:
-                move = 1
-            else:
-                move = -1
-            self._instr_display.yview_scroll(move, "units")
-
     def button_state (self, state):
         self._to_rand.config(state = state)
         self._to_zero.config(state = state)
@@ -258,12 +246,31 @@ class Interface:
         if len(self.cal_text) > 86:
             self.cal_text = '... ' + self.cal_text[len(self.cal_text)-86:]
 
-    # def nb_line_s (self):
-    #     for i in self._output_text:
-    #         self._root.after(1, self._output_display.yview_scroll(4, "units"))
+    def mouse_scroll(self, event):
+        name = event.widget
+        while name != self._root:
+            name2 = name
+            name = name.master
+        if event.num == 5:
+            name2.yview_scroll(1, "units")
+        else:
+            name2.yview_scroll(-1, "units")
+
+    def bind_scrollbar (self, wd):
+        wd.bind_all("<MouseWheel>", self.mouse_scroll)
+        wd.bind("<Button-4>", self.mouse_scroll)
+        wd.bind("<Button-5>", self.mouse_scroll)
+
+    def on_frame_configure (self, canvas):
+        canvas.configure(
+            scrollregion = canvas.bbox("all"))
 
     def consumption (self):
         Consumption('conso.txt').creat_plot()
+
+    # def nb_line_s (self):
+    #     for i in self._output_text:
+    #         self._root.after(1, self._output_display.yview_scroll(4, "units"))
 
     def creat_widget (self):
         font_text = tkFont.nametofont("TkFixedFont")
@@ -277,7 +284,8 @@ class Interface:
         self._instr_display.grid(rowspan = 5, columnspan = 7, column = 1, row = 1, sticky = 'nesw', pady = 5, padx = 5)
         self._instr_display.create_window((4, 4), window = self._frame, anchor = "ne")
         self._frame.bind("<Configure>", lambda event, canvas = self._instr_display: 
-            self.on_frame_configure(self._instr_display))
+            self.on_frame_configure(canvas))
+        self.bind_scrollbar(self._frame)
         self._instr_lab_list = []
 
         # Frame 2
@@ -289,12 +297,10 @@ class Interface:
         self._output_display.grid(rowspan = 5, columnspan = 8, column = 1, row = 11, sticky = 'nesw', pady = 5, padx = 5)
         self._output_display.create_window((4, 4), window = self._frame2, anchor="ne")
         self._frame2.bind("<Configure>", lambda event, canvas = self._output_display: 
-            self.on_frame_configure(self._output_display))
+            self.on_frame_configure(canvas))
         self._outpt = Label(self._frame2, width = 94, anchor = 'nw', justify = 'left', bg = 'white', font = font_text)
         self._outpt.grid(row = 1, column = 1, pady = 2, sticky = 'w')
-        self._root.bind_all("<MouseWheel>", self.mouse_scroll)
-        self._root.bind("<Button-4>", self.mouse_scroll)
-        self._root.bind("<Button-5>", self.mouse_scroll)
+        self.bind_scrollbar(self._outpt)
 
         # Button
         self._step = self.creat_button(self._root, 'Step', self.event_step, 'disabled', 8, 1)
@@ -309,7 +315,7 @@ class Interface:
         self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0)
         self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17)
         self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'disabled', 7, 17)
-
+        self.bind_scrollbar(self._output_display)
         # Text
         self._inject_fault = Label(self._root, text = 'Inject fault:', g = None, width = 10,
             font = ('helvetic', 12))
