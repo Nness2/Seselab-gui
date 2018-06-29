@@ -25,8 +25,13 @@ main:
 	prn #111
 	prn #111
 	prn #111
+ot:
+	cal tem
 	prn #111
 	prn #111
 
 tem:
 	prn r21
+	cal ot
+
+

@@ -25,8 +25,6 @@ class Interface:
         self.fill_text_field()
         self.creat_widget()
         self.cpu = None
-        self._curt_reg = None
-        self._previous_ip = 0
 
         self._output = open('log.txt', 'w')
         sys.stdout = self._output
@@ -72,16 +70,17 @@ class Interface:
 
         value = StringVar()
         value.set(text_field)
-        self._file = Entry(self._root, text = value, width = 22, font = ('helvetic', 12))
+        self._file = Entry(self._root, text = value, width = 25, font = ('helvetic', 12))
         self._file.grid(column = 1, row = 0, sticky = 'w', padx = 5, pady = 5, columnspan = 3)
 
-    def creat_button (self, root, text, command, state, c, r):
+    def creat_button (self, root, text, command, state, c, r, px, py):
         button = Button(self._root, text = text, command = command, 
             width = 6, font = ('helvetic', 11), state = state)
-        button.grid(column = c, row = r, sticky = 'we', padx = 5)
+        button.grid(column = c, row = r, sticky = 'we', padx = px, pady = py)
         return button
 
     def creat_reglist (self):
+        self._curt_reg = None
         self._reg_lst = []
         reg_num = 0
         for j in range(4):
@@ -108,6 +107,7 @@ class Interface:
         self._root.destroy() 
 
     def fill_canvas (self):
+        self._previous_ip = 0
         font = tkFont.nametofont("TkFixedFont")
         font.configure(size = 14)
         for row in range(len(self._infos) - 1):
@@ -132,8 +132,13 @@ class Interface:
             return False
 
     def event_run (self):
-        while self.event_step():
-            pass
+        if self._pause_flag == 0:
+            self._pause_flag = 1
+            self.button_state('disabled')
+            self._reset.config(state = 'disabled')
+            self._load.config(state = 'disabled')
+            self._speed = 1
+            self.tempo_run()
 
     def event_run_slow (self):
         if self._pause_flag == 0:
@@ -141,12 +146,13 @@ class Interface:
             self.button_state('disabled')
             self._reset.config(state = 'disabled')
             self._load.config(state = 'disabled')
+            self._speed = 500
             self.tempo_run()
 
     def tempo_run (self):
         if self._pause_flag == 1:
             if self.event_step():
-                self._root.after(500,self.tempo_run)
+                self._root.after(self._speed,self.tempo_run)
             else:
                 self._load.config(state = 'normal')
                 self._reset.config(state = 'normal')
@@ -303,21 +309,21 @@ class Interface:
         self.bind_scrollbar(self._outpt)
 
         # Button
-        self._step = self.creat_button(self._root, 'Step', self.event_step, 'disabled', 8, 1)
-        self._run = self.creat_button(self._root, 'Run', self.event_run, 'disabled', 8, 2)
-        self._run_slow = self.creat_button(self._root, 'Run slowly', self.event_run_slow, 'disabled', 8, 3)
-        self._pause = self.creat_button(self._root, 'Pause', self.event_pause, 'disabled', 8, 4)
-        self._skip = self.creat_button(self._root, 'Skip', self.event_skip, 'disabled', 8, 5)
-        self._to_rand = self.creat_button(self._root, 'Random', self.event_set_rand, 'disabled', 2, 10)
-        self._to_zero = self.creat_button(self._root, 'Zero', self.event_set_zero, 'disabled', 3, 10)
-        self._reset = self.creat_button(self._root, 'Reset', self.event_reset, 'disabled', 5, 0)
-        self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0)
-        self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0)
-        self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17)
-        self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'disabled', 7, 17)
+        self._step = self.creat_button(self._root, 'Step', self.event_step, 'disabled', 8, 1, 5, 0)
+        self._run = self.creat_button(self._root, 'Run', self.event_run, 'disabled', 8, 2, 5, 0)
+        self._run_slow = self.creat_button(self._root, 'Run slowly', self.event_run_slow, 'disabled', 8, 3, 5, 0)
+        self._pause = self.creat_button(self._root, 'Pause', self.event_pause, 'disabled', 8, 4, 5, 0)
+        self._skip = self.creat_button(self._root, 'Skip', self.event_skip, 'disabled', 8, 5, 5, 0)
+        self._to_rand = self.creat_button(self._root, 'Random', self.event_set_rand, 'disabled', 2, 10, 5, 0)
+        self._to_zero = self.creat_button(self._root, 'Zero', self.event_set_zero, 'disabled', 3, 10, 5, 0)
+        self._reset = self.creat_button(self._root, 'Reset', self.event_reset, 'disabled', 5, 0, 5, 0)
+        self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0, 5, 0)
+        self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0, 5, 0)
+        self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17, 5, 5)
+        self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'disabled', 7, 17, 5, 5)
         self.bind_scrollbar(self._output_display)
         # Text
-        self._inject_fault = Label(self._root, text = 'Inject fault:', g = None, width = 10,
+        self._inject_fault = Label(self._root, anchor = 'e', text = 'Inject fault:', g = None, width = 10,
             font = ('helvetic', 12))
         self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
 
