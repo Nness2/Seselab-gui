@@ -6,8 +6,7 @@ from cpu import CPU
 from consumption import Consumption
 from instr import Instr
 from tkinter import filedialog
-import tkinter.messagebox as msg
-import tkinter as tk
+import tempfile
 import tkinter.font as tkFont
 import os
 import sys
@@ -19,16 +18,19 @@ class Interface:
         self._root = Tk()
         self._root.title('Seselab')
         self._root.resizable(False, False)
-        self._root.protocol("WM_DELETE_WINDOW", self.Intercepte)
+        self._root.protocol("WM_DELETE_WINDOW", self.event_close)
 
         self.creat_reglist()
         self.fill_text_field()
         self.creat_widget()
         self.cpu = None
 
-        self._output = open('log.txt', 'w')
+        self._consum_file = tempfile.NamedTemporaryFile()
+        self._output_file = tempfile.NamedTemporaryFile()
+
+        self._output = open(self._output_file.name, 'w')
         sys.stdout = self._output
-        self.bak = sys.stdout 
+        self._stdout_back = sys.stdout 
 
     def event_load (self):
         self.destroy_canvas()
@@ -39,15 +41,15 @@ class Interface:
         self.event_reset()
 
     def event_reset (self):    
+        # self._output = open(self._output_file.name, 'w')
         self._pause_flag = 0
-        self.cal_text = ''
-        self._call_historic.config(text = self.cal_text)
-        self.cpu = CPU(1048576, 32, self._code, 'conso.txt')
+        self._brdcrb_list = ['main']
+        self._brdcrb.config(text = '')
+        self.cpu = CPU(1048576, 32, self._code, self._consum_file.name)
         self.update_display()
         self.button_state('normal')
         self._pause.config(state = 'normal')
         self._reset.config(state = 'normal')
-        self._consumption.config(state = 'disabled')
         self._root.after(1, self.event_step)
 
 
@@ -61,7 +63,7 @@ class Interface:
 
     def fill_text_field (self):
         if len(sys.argv) > 1:
-            if sys.argv[1][len(sys.argv[1]) - 4 : len(sys.argv[1])] == '.asm':
+            if sys.argv[1][-4:] == '.asm':
                 text_field = sys.argv[1]
             else:
                 text_field = 'Choose file…'
@@ -96,15 +98,12 @@ class Interface:
             self._reg_lst[i].config(
                 text = 'r' + str(i) + ': ' + str(self.cpu._reg[i]))
 
-    def Intercepte(self):
+    def event_close(self):
+        self._consum_file.close()
+        self._output_file.close()
         self._output.close()
-        sys.stdout = self.bak 
-        os.remove('log.txt')
-        try:
-            os.remove('conso.txt')
-        except:
-            pass
-        self._root.destroy() 
+        sys.stdout = self._stdout_back
+        self._root.destroy()
 
     def fill_canvas (self):
         self._previous_ip = 0
@@ -128,31 +127,21 @@ class Interface:
             self._pause.config(state = 'disabled')
             self._consumption.config(state = 'normal')
             self.output()
-            self.cpu._probe._probe.close()
             return False
 
-    def event_run (self):
+    def event_run (self, speed):
         if self._pause_flag == 0:
             self._pause_flag = 1
             self.button_state('disabled')
             self._reset.config(state = 'disabled')
             self._load.config(state = 'disabled')
-            self._speed = 1
-            self.tempo_run()
-
-    def event_run_slow (self):
-        if self._pause_flag == 0:
-            self._pause_flag = 1
-            self.button_state('disabled')
-            self._reset.config(state = 'disabled')
-            self._load.config(state = 'disabled')
-            self._speed = 500
+            self._speed = speed
             self.tempo_run()
 
     def tempo_run (self):
         if self._pause_flag == 1:
             if self.event_step():
-                self._root.after(self._speed,self.tempo_run)
+                self._root.after(self._speed, self.tempo_run)
             else:
                 self._load.config(state = 'normal')
                 self._reset.config(state = 'normal')
@@ -196,7 +185,7 @@ class Interface:
             self._reg_lst[x].config(bg = 'yellow')
             self._curt_reg = x
 
-        if self.cpu is not None:
+        if self.cpu is not None and self._curt_reg is not None:
             self._to_rand.config(state = 'normal')
             self._to_zero.config(state = 'normal')
 
@@ -207,13 +196,18 @@ class Interface:
         self._instr_lab_list[self._previous_ip].config(bg = 'white')
         self._instr_lab_list[self.cpu._ip].config(bg = 'yellow')
         self._previous_ip = self.cpu._ip
-        self.update_historic()
+        self.breadcrumb()
 
-    def update_historic (self):
+    def breadcrumb (self):
+        text = ''
         if self._code[self.cpu._ip][0][0] == 'cal':
-            self.cal_text = self.cal_text + ' → ' + 'cal ' + self._code[self.cpu._ip][1][2]
-            self.cal_overwrite()
-            self._call_historic.config(text = self.cal_text)
+            self._brdcrb_list.insert(0, self._code[self.cpu._ip][1][2])
+        elif self._code[self.cpu._ip][0][0] == 'ret':
+            if self._brdcrb_list:
+                self._brdcrb_list.pop(0)
+        for e in self._brdcrb_list:
+            text = text + e + ' ← '
+        self._brdcrb.config(text = text)
 
     def destroy_canvas (self):
         for obj in self._instr_lab_list:
@@ -222,6 +216,7 @@ class Interface:
     def button_state (self, state):
         self._to_rand.config(state = state)
         self._to_zero.config(state = state)
+        self._consumption.config(state = state)
         self._step.config(state = state)
         self._run.config(state = state)
         self._run_slow.config(state = state)
@@ -229,7 +224,7 @@ class Interface:
 
     def output (self):
         self._output_text = ''
-        fd = open("log.txt", "r")
+        fd = open(self._output_file.name, "r")
         self._output_text = fd.read()
         self._output_text = self.return_line(self._output_text)
         self._outpt.config(text = self._output_text)
@@ -248,19 +243,15 @@ class Interface:
                 text = text[:i]+ '\n' + text [i:]
         return text
 
-    def cal_overwrite (self):
-        if len(self.cal_text) > 86:
-            self.cal_text = '... ' + self.cal_text[len(self.cal_text)-86:]
-
     def mouse_scroll(self, event):
-        name = event.widget
-        while name != self._root:
-            name2 = name
-            name = name.master
+        wdg = event.widget
+        while wdg != self._root:
+            prev_wdg = wdg
+            wdg = wdg.master
         if event.num == 5:
-            name2.yview_scroll(1, "units")
+            prev_wdg.yview_scroll(1, "units")
         else:
-            name2.yview_scroll(-1, "units")
+            prev_wdg.yview_scroll(-1, "units")
 
     def bind_scrollbar (self, wd):
         wd.bind_all("<MouseWheel>", self.mouse_scroll)
@@ -272,11 +263,8 @@ class Interface:
             scrollregion = canvas.bbox("all"))
 
     def consumption (self):
-        Consumption('conso.txt').creat_plot()
-
-    # def nb_line_s (self):
-    #     for i in self._output_text:
-    #         self._root.after(1, self._output_display.yview_scroll(4, "units"))
+        self.cpu._probe._probe.flush()
+        Consumption(self._consum_file.name).creat_plot()
 
     def creat_widget (self):
         font_text = tkFont.nametofont("TkFixedFont")
@@ -310,8 +298,8 @@ class Interface:
 
         # Button
         self._step = self.creat_button(self._root, 'Step', self.event_step, 'disabled', 8, 1, 5, 0)
-        self._run = self.creat_button(self._root, 'Run', self.event_run, 'disabled', 8, 2, 5, 0)
-        self._run_slow = self.creat_button(self._root, 'Run slowly', self.event_run_slow, 'disabled', 8, 3, 5, 0)
+        self._run = self.creat_button(self._root, 'Run', lambda: self.event_run(1), 'disabled', 8, 2, 5, 0)
+        self._run_slow = self.creat_button(self._root, 'Run slowly', lambda: self.event_run(500), 'disabled', 8, 3, 5, 0)
         self._pause = self.creat_button(self._root, 'Pause', self.event_pause, 'disabled', 8, 4, 5, 0)
         self._skip = self.creat_button(self._root, 'Skip', self.event_skip, 'disabled', 8, 5, 5, 0)
         self._to_rand = self.creat_button(self._root, 'Random', self.event_set_rand, 'disabled', 2, 10, 5, 0)
@@ -319,8 +307,9 @@ class Interface:
         self._reset = self.creat_button(self._root, 'Reset', self.event_reset, 'disabled', 5, 0, 5, 0)
         self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0, 5, 0)
         self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0, 5, 0)
-        self._quit= self.creat_button(self._root, 'Close', self.Intercepte, 'normal', 8, 17, 5, 5)
-        self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'disabled', 7, 17, 5, 5)
+        self._quit= self.creat_button(self._root, 'Close', self.event_close, 'normal', 8, 17, 5, 5)
+        self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'normal', 7, 17, 5, 5)
+        self._consumption.config(state = 'disabled')
         self.bind_scrollbar(self._output_display)
         # Text
         self._inject_fault = Label(self._root, anchor = 'e', text = 'Inject fault:', g = None, width = 10,
@@ -328,9 +317,9 @@ class Interface:
         self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
 
         # Call list
-        self._call_historic = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97,
+        self._brdcrb = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97,
             font = font_text, relief = SUNKEN)
-        self._call_historic.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)
+        self._brdcrb.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)
 
 
 

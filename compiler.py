@@ -192,7 +192,7 @@ class Compiler:
             else:
                 a = self.instr(l)
                 if a is not None:
-                    self._code.append([a, (self._files[-1], self._ln[-1])])
+                    self._code.append([a, [self._files[-1], self._ln[-1]]])
                     self._count += 1
             self._ln[-1] += 1
         self._files.pop()
@@ -201,7 +201,7 @@ class Compiler:
 
     def compile (self, path):
         try:
-            self._code.append([['jmp', ('lbl', 'main')], ('_', -1)])
+            self._code.append([['jmp', ('lbl', 'main')], ['_', -1]])
             self._count += 1
             self.compile_file(os.path.abspath(path))
             for instr in self._code:
@@ -210,9 +210,14 @@ class Compiler:
                         lbl = instr[0][1][1]
                         if lbl in self._labels:
                             instr[0][1] = 'imm', self._labels[lbl][0]
-                            instr[1] = instr[1][0], instr[1][1], lbl
+                            instr[1].append(lbl)
                         else:
                             raise LabelNotFound(lbl, instr[1][0], instr[1][1])
+            for lbl in self._labels:
+                instr = self._code[self._labels[lbl][0]]
+                if len(instr[1]) == 2:
+                    instr[1].append(None)
+                instr[1].append(lbl)
             return self._code
 
         except ParseError as e:
