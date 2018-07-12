@@ -6,6 +6,8 @@ from cpu import CPU
 from consumption import Consumption
 from instr import Instr
 from tkinter import filedialog
+from tkinter import messagebox
+import shutil
 import tempfile
 import tkinter.font as tkFont
 import os
@@ -29,19 +31,26 @@ class Interface:
         self._output_file = tempfile.NamedTemporaryFile()
 
         self._output = open(self._output_file.name, 'w')
+        self._stdout_back = sys.stdout
         sys.stdout = self._output
-        self._stdout_back = sys.stdout 
+        
 
     def event_load (self):
-        self.destroy_canvas()
-        self._instr_lab_list = []
-        self._code = Compiler().compile(self._file.get())
-        self._infos = Instr().stack_infos(self._code)
-        self.fill_canvas()
-        self.event_reset()
+        try : 
+            self._code = Compiler().compile(self._file.get())
+            self.destroy_canvas()
+            self._instr_lab_list = []
+            self._infos = Instr().stack_infos(self._code)
+            self.fill_canvas()  
+            self.event_reset()
+        except:
+            messagebox.showerror('Information', 'Please, choose a valid file …')
 
-    def event_reset (self):    
-        # self._output = open(self._output_file.name, 'w')
+    def event_reset (self):
+        sys.output = self._stdout_back
+        self._output.close()
+        self._output = open(self._output_file.name, 'w')
+        sys.stdout = self._output
         self._pause_flag = 0
         self._brdcrb_list = ['main']
         self._brdcrb.config(text = '')
@@ -50,6 +59,8 @@ class Interface:
         self.button_state('normal')
         self._pause.config(state = 'normal')
         self._reset.config(state = 'normal')
+        self._consumption.config(state = 'normal')
+        self._save_csmpt.config(state = 'normal')
         self._root.after(1, self.event_step)
 
 
@@ -199,15 +210,20 @@ class Interface:
         self.breadcrumb()
 
     def breadcrumb (self):
-        text = ''
+        self._bc_text = ''    
         if self._code[self.cpu._ip][0][0] == 'cal':
-            self._brdcrb_list.insert(0, self._code[self.cpu._ip][1][2])
+            self._brdcrb_list.append(self._code[self.cpu._ip][1][2])
         elif self._code[self.cpu._ip][0][0] == 'ret':
             if self._brdcrb_list:
-                self._brdcrb_list.pop(0)
+                self._brdcrb_list.pop()
         for e in self._brdcrb_list:
-            text = text + e + ' ← '
-        self._brdcrb.config(text = text)
+            self._bc_text = str(self._bc_text) + ' → ' + str(e)
+            self.push_brdcrb()
+        self._brdcrb.config(text = self._bc_text)
+
+    def push_brdcrb (self):
+        if len(self._bc_text) > 70:
+            self._bc_text = '... ' + self._bc_text[len(self._bc_text)-70:]
 
     def destroy_canvas (self):
         for obj in self._instr_lab_list:
@@ -217,7 +233,7 @@ class Interface:
         self._to_rand.config(state = state)
         self._to_zero.config(state = state)
         self._consumption.config(state = state)
-        self._step.config(state = state)
+        self._step.config(state = state)    
         self._run.config(state = state)
         self._run_slow.config(state = state)
         self._skip.config(state = state)
@@ -266,6 +282,18 @@ class Interface:
         self.cpu._probe._probe.flush()
         Consumption(self._consum_file.name).creat_plot()
 
+    def save_consumption (self):
+        self.cpu._probe._probe.flush()
+        fIn = open(self._consum_file.name, 'r')
+        # fIn.flush()
+        fOut = open('consumption.txt', 'w')
+        fd = fIn.read()
+        # for line in fIn.readlines():
+        fOut.write(fd)
+        # fOut.flush()
+        fOut.close()
+        messagebox.showinfo('Information', 'The consumption was saved in a file "consumption.txt"')
+
     def creat_widget (self):
         font_text = tkFont.nametofont("TkFixedFont")
         font_text.configure(size=14)
@@ -307,19 +335,27 @@ class Interface:
         self._reset = self.creat_button(self._root, 'Reset', self.event_reset, 'disabled', 5, 0, 5, 0)
         self._pick_file = self.creat_button(self._root, 'Pick file', self.pick_file, 'normal', 3, 0, 5, 0)
         self._load = self.creat_button(self._root, 'Load', self.event_load, 'normal', 4, 0, 5, 0)
-        self._quit= self.creat_button(self._root, 'Close', self.event_close, 'normal', 8, 17, 5, 5)
-        self._consumption = self.creat_button(self._root, 'Consumption', self.consumption, 'normal', 7, 17, 5, 5)
+        self._quit= self.creat_button(self._root, 'Close', self.event_close, 'normal', 8, 18, 5, 5)
+        self._consumption = self.creat_button(self._root, 'Plot view', self.consumption, 'normal', 2, 16, 5, 5)
+        self._save_csmpt = self.creat_button(self._root, 'Save', self.save_consumption, 'normal', 3, 16, 5, 5)
         self._consumption.config(state = 'disabled')
+        self._save_csmpt.config(state = 'disabled')
         self.bind_scrollbar(self._output_display)
+        self._reset.config(state = 'disabled')
         # Text
         self._inject_fault = Label(self._root, anchor = 'e', text = 'Inject fault:', g = None, width = 10,
             font = ('helvetic', 12))
         self._inject_fault.grid(column = 1, row = 10, columnspan = 8, sticky = 'w', padx = 8)
 
+        self._csmpt_lab = Label(self._root, anchor = 'e', text = 'Consumption :', g = None, width = 12,
+            font = ('helvetic', 12))
+        self._csmpt_lab.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8)
+
         # Call list
         self._brdcrb = Label(self._root, text = '', anchor = 'w', bg = 'white', width = 97,
             font = font_text, relief = SUNKEN)
-        self._brdcrb.grid(column = 1, row = 16, columnspan = 8, sticky = 'w', padx = 8, pady = 5)
+        self._brdcrb.grid(column = 1, row = 17, columnspan = 8, sticky = 'w', padx = 8, pady = 5)
+        
 
 
 
