@@ -52,7 +52,7 @@ class Interface:
         self._output = open(self._output_file.name, 'w')
         sys.stdout = self._output
         self._pause_flag = 0
-        self._brdcrb_list = ['main']
+        self._brdcrb_path = ['main']
         self._brdcrb.config(text = '')
         self.cpu = CPU(1048576, 32, self._code, self._consum_file.name)
         self.update_display()
@@ -130,7 +130,9 @@ class Interface:
 
     def event_step (self):
         if self.cpu.cycle():
+            self.breadcrumb()
             self.update_display()
+
             self.output()
             return True
         else:
@@ -166,7 +168,7 @@ class Interface:
     def event_skip (self):
         try:
             self.cpu._ip += 1 
-            self.update_display() 
+            self.update_display()
         except:
             self.button_state('disabled')
             self._pause.config(state = 'disabled')
@@ -207,16 +209,15 @@ class Interface:
         self._instr_lab_list[self._previous_ip].config(bg = 'white')
         self._instr_lab_list[self.cpu._ip].config(bg = 'yellow')
         self._previous_ip = self.cpu._ip
-        self.breadcrumb()
 
     def breadcrumb (self):
         self._bc_text = ''    
-        if self._code[self.cpu._ip][0][0] == 'cal':
-            self._brdcrb_list.append(self._code[self.cpu._ip][1][2])
-        elif self._code[self.cpu._ip][0][0] == 'ret':
-            if self._brdcrb_list:
-                self._brdcrb_list.pop()
-        for e in self._brdcrb_list:
+        if self._code[self._previous_ip][0][0] == 'cal':
+            self._brdcrb_path.append(self._code[self._previous_ip][1][2])
+        elif self._code[self._previous_ip][0][0] == 'ret':
+            if self._brdcrb_path:
+                self._brdcrb_path.pop()
+        for e in self._brdcrb_path:
             self._bc_text = str(self._bc_text) + ' → ' + str(e)
             self.push_brdcrb()
         self._brdcrb.config(text = self._bc_text)
@@ -283,16 +284,14 @@ class Interface:
         Consumption(self._consum_file.name).creat_plot()
 
     def save_consumption (self):
+        f = filedialog.asksaveasfile(title = "Save file", filetypes = [('txt files','.txt')])
         self.cpu._probe._probe.flush()
         fIn = open(self._consum_file.name, 'r')
-        # fIn.flush()
-        fOut = open('consumption.txt', 'w')
+        fOut = open(f.name, 'w')
         fd = fIn.read()
-        # for line in fIn.readlines():
         fOut.write(fd)
-        # fOut.flush()
         fOut.close()
-        messagebox.showinfo('Information', 'The consumption was saved in a file "consumption.txt"')
+
 
     def creat_widget (self):
         font_text = tkFont.nametofont("TkFixedFont")
