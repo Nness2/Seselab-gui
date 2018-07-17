@@ -131,20 +131,24 @@ class CPU:
         return None
 
     def cycle (self):
-        try:
-            ip = self.execute_instruction(self._ip)
-            if ip is not None:
-                self._ip = ip
-            else:
-                self._ip += 1
-            self._probe.read(self._ram.get_activity())
-            self._probe.read(self._reg.get_activity())
-            self._probe.output_activity()
-            sys.stdout.flush()
+        ip = self.execute_instruction(self._ip)
+        if ip is not None:
+            self._ip = ip
+        else:
+            self._ip += 1
+        self._probe.read(self._ram.get_activity())
+        self._probe.read(self._reg.get_activity())
+        self._probe.output_activity()
+        sys.stdout.flush()
 
-            if self._ip < 0 or self._ip >= self._max_ip:
-                return False
-            return True
+        if self._ip < 0 or self._ip >= self._max_ip:
+            return False
+        return True
+
+    def run (self):
+        try:
+            while self.cycle():
+                pass
 
         except AddrError as e:
             print('Invalid address ' + str(e.addr) +
@@ -157,7 +161,3 @@ class CPU:
                   ' on line ' + str(self._code[self._ip][1][1]) +
                   ' of file ' + self._code[self._ip][1][0],
                   file=sys.stderr)
-
-    def run (self):
-        while self.cycle():
-            pass

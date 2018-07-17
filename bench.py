@@ -27,7 +27,7 @@ if sys.argv[1] == '-i':
     signal.signal(signal.SIGINT, inject)
     sys.argv.pop(1)
 
-program = Compiler().compile(sys.argv[1])
+program = Compiler().run(sys.argv[1])
 
 cpu = CPU(1048576, 32, program, sys.argv[2])
 cpu.run()

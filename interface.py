@@ -7,6 +7,7 @@ from consumption import Consumption
 from instr import Instr
 from tkinter import filedialog
 from tkinter import messagebox
+from exn import *
 import shutil
 import tempfile
 import tkinter.font as tkFont
@@ -32,19 +33,40 @@ class Interface:
 
         self._output = open(self._output_file.name, 'w')
         self._stdout_back = sys.stdout
-        sys.stdout = self._output
-        
+        sys.stdout = self._output        
 
     def event_load (self):
-        try : 
-            self._code = Compiler().compile(self._file.get())
+        try :
+            cmpl = Compiler()
+            self._code = cmpl.compile(self._file.get())
             self.destroy_canvas()
             self._instr_lab_list = []
             self._infos = Instr().stack_infos(self._code)
             self.fill_canvas()  
             self.event_reset()
-        except:
-            messagebox.showerror('Information', 'Please, choose a valid file …')
+
+        except ParseError as e:
+            text = ('Parse error: ' + e.err +
+                  ' in ' + cmpl._files[-1] +
+                  ' on line ' + str(cmpl._ln[-1]))
+            messagebox.showerror('Information', text)
+
+        except DuplicateLabel as e:
+            text = ('Duplicate label: ' + e.lbl +
+                  ' in ' + cmpl._files[-1] +
+                  ' on line ' + str(cmpl._ln[-1]) +
+                  ' (first declared in ' + cmpl._labels[e.lbl][1] +
+                  ' on line ' + str(cmpl._labels[e.lbl][2]) + ')')
+            messagebox.showerror('Information', text)
+
+        except LabelNotFound as e:
+            text = ('Label not found: ' + e.lbl +
+                  ' (called in ' + e.file +
+                  ' on line ' + str(e.line) + ')')
+            messagebox.showerror('Information', text)
+
+        except FileNotFound as e:
+            messagebox.showerror('Information', e.file + ' is not found')
 
     def event_reset (self):
         sys.output = self._stdout_back
@@ -62,7 +84,6 @@ class Interface:
         self._consumption.config(state = 'normal')
         self._save_csmpt.config(state = 'normal')
         self._root.after(1, self.event_step)
-
 
     def pick_file (self):
         filename = filedialog.askopenfilename(initialdir = os.getcwd(),
@@ -114,6 +135,7 @@ class Interface:
         self._output_file.close()
         self._output.close()
         sys.stdout = self._stdout_back
+        sys.stderr = self._stdout_back
         self._root.destroy()
 
     def fill_canvas (self):
@@ -129,18 +151,31 @@ class Interface:
         self._instr_lab_list[0].grid_forget()
 
     def event_step (self):
-        if self.cpu.cycle():
-            self.breadcrumb()
-            self.update_display()
+        try:
+            if self.cpu.cycle():
+                self.breadcrumb()
+                self.update_display()
 
-            self.output()
-            return True
-        else:
-            self.button_state('disabled')
-            self._pause.config(state = 'disabled')
-            self._consumption.config(state = 'normal')
-            self.output()
-            return False
+                self.output()
+                return True
+            else:
+                self.button_state('disabled')
+                self._pause.config(state = 'disabled')
+                self._consumption.config(state = 'normal')
+                self.output()
+                return False
+
+        except AddrError as e:
+            text = ('Invalid address ' + str(e.addr) +
+                  ' on line ' + str(self._code[self.cpu._ip][1][1]) +
+                  ' of file ' + self._code[self.cpu._ip][1][0])
+            messagebox.showerror('Information', text)
+
+        except WriteError:
+            text = ('Invalid write ' +
+                  ' on line ' + str(self._code[self.cpu._ip][1][1]) +
+                  ' of file ' + self._code[self.cpu._ip][1][0])
+            messagebox.showerror('Information', text)
 
     def event_run (self, speed):
         if self._pause_flag == 0:

@@ -16,6 +16,10 @@ class AddrError (Exception):
     def __init__ (self, addr):
         self.addr = addr
 
+class FileNotFound (Exception):
+    def __init__ (self, file):
+        self.file = file
+
 class WriteError (Exception):
     def __init__ (self):
         pass
