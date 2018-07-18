@@ -12,7 +12,7 @@ class Compiler:
         self._code = []
 
     def arit (self, i, a):
-        if len(i) == a + 1:
+        if len(i) != a + 1:
             raise ParseError('arity')
 
     def addr (self, a, noref = False):
@@ -182,11 +182,7 @@ class Compiler:
         raise ParseError('opcode')
 
     def compile_file (self, path):
-        try:
-            inp = open(path, 'r')
-        except:
-            raise FileNotFound(os.path.basename(path))
-
+        inp = open(path, 'r')
         self._files.append(os.path.basename(path))
         self._ln.append(1)
         for l in inp:

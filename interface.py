@@ -65,9 +65,6 @@ class Interface:
                   ' on line ' + str(e.line) + ')')
             messagebox.showerror('Information', text)
 
-        except FileNotFound as e:
-            messagebox.showerror('Information', e.file + ' is not found')
-
     def event_reset (self):
         sys.output = self._stdout_back
         self._output.close()
@@ -172,7 +169,7 @@ class Interface:
             messagebox.showerror('Information', text)
 
         except WriteError:
-            text = ('Invalid write ' +
+            text = ('Invalid write' +
                   ' on line ' + str(self._code[self.cpu._ip][1][1]) +
                   ' of file ' + self._code[self.cpu._ip][1][0])
             messagebox.showerror('Information', text)
